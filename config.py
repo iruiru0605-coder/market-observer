@@ -1,6 +1,7 @@
 """
 Market Observer - 設定ファイル
 """
+import os
 from pathlib import Path
 from datetime import datetime
 
@@ -11,6 +12,9 @@ LOG_DIR = DATA_DIR / "logs"
 
 # ログディレクトリ作成
 LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+# API設定
+NEWSAPI_KEY = os.getenv("NEWSAPI_KEY", "")
 
 # スコア設定
 SCORE_MIN = -10

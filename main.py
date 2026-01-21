@@ -1,6 +1,6 @@
 """
 Market Observer - メインエントリポイント
-投資市場観測・助言ツール
+投資市場観測・助言ツール（完全自動実行版）
 
 【重要】
 このツールは投資判断を行いません。
@@ -11,58 +11,58 @@ Market Observer - メインエントリポイント
 - ✅ 定量評価・変化検知
 - ✅ 判断材料の提示
 """
+import sys
+from datetime import datetime
+
 from analyzer import classify_news_batch, score_news_batch, calculate_aggregate_scores
 from alert import AlertDetector
 from report import generate_report
+from fetcher import fetch_news
+from models import NewsDTO
 
 
 def main():
-    """メイン処理"""
+    """メイン処理（完全自動実行）"""
     print("=" * 60)
     print("📊 Market Observer - 投資市場観測ツール")
+    print(f"   実行日時: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 60)
     print()
     print("【注意】このツールは投資判断を行いません。")
     print("        情報整理・変化検知・判断材料の提示を目的としています。")
     print()
     
-    # アラート検知器
-    detector = AlertDetector()
-    
-    # ニュース入力
-    news_list = []
-    
+    # ===== 1. ニュース取得 =====
     print("-" * 40)
-    print("📰 海外ニュースを入力してください")
-    print("   （空行で入力終了）")
+    print("📰 ニュースを取得中...")
     print("-" * 40)
     
-    while True:
-        text = input("海外> ").strip()
-        if not text:
-            break
-        news_list.append({"text": text, "source": "foreign"})
+    result = fetch_news()
     
-    print()
-    print("-" * 40)
-    print("📰 国内ニュースを入力してください")
-    print("   （空行で入力終了）")
-    print("-" * 40)
+    if not result.success:
+        print(f"\n⚠️ ニュース取得に失敗しました: {result.error_message}")
+        print("   環境変数 NEWSAPI_KEY が設定されているか確認してください。")
+        print()
+        print("   設定例: set NEWSAPI_KEY=your_api_key_here")
+        return 1
     
-    while True:
-        text = input("国内> ").strip()
-        if not text:
-            break
-        news_list.append({"text": text, "source": "domestic"})
+    if result.count == 0:
+        print("\n⚠️ ニュースが取得できませんでした。終了します。")
+        return 1
     
-    if not news_list:
-        print("\n⚠️ ニュースが入力されませんでした。終了します。")
-        return
+    print(f"   ✓ {result.count}件のニュースを取得しました（{result.source_api}）")
     
+    # ===== 2. DTOを分析用形式に変換 =====
+    news_list = [dto.to_dict() for dto in result.news_list]
+    
+    # ===== 3. 分析 =====
     print()
     print("=" * 60)
     print("📊 分析中...")
     print("=" * 60)
+    
+    # アラート検知器
+    detector = AlertDetector()
     
     # 分類
     classified = classify_news_batch(news_list)
@@ -81,12 +81,14 @@ def main():
     detector.add_daily_score(aggregates)
     print(f"   ✓ アラート検出完了: {len(alerts)}件")
     
-    # レポート生成
+    # ===== 4. レポート生成 =====
     print()
     report = generate_report(scored, aggregates, alerts)
     print()
     print(report)
+    
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
