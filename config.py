@@ -5,6 +5,13 @@ import os
 from pathlib import Path
 from datetime import datetime
 
+# .envファイルから環境変数を読み込み
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 # パス設定
 BASE_DIR = Path(__file__).parent
 DATA_DIR = BASE_DIR / "data"
