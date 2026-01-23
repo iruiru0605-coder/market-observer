@@ -14,7 +14,13 @@ Market Observer - メインエントリポイント
 import sys
 from datetime import datetime
 
-from analyzer import classify_news_batch, score_news_batch, calculate_aggregate_scores, detect_political_events
+from analyzer import (
+    classify_news_batch, 
+    score_news_batch, 
+    calculate_aggregate_scores, 
+    detect_political_events,
+    observe_macro
+)
 from alert import AlertDetector
 from report import generate_report
 from fetcher import fetch_news
@@ -85,9 +91,19 @@ def main():
     political_events = detect_political_events(news_list)
     print(f"   ✓ 政治発言検知完了: {len(political_events)}件")
     
+    # マクロ環境観測
+    macro_observation = observe_macro(news_list)
+    print(f"   ✓ マクロ環境観測完了: {macro_observation.total_count}件")
+    
     # ===== 4. レポート生成 =====
     print()
-    report = generate_report(scored, aggregates, alerts, political_events)
+    report = generate_report(
+        scored, 
+        aggregates, 
+        alerts, 
+        political_events,
+        macro_observation
+    )
     print()
     print(report)
     

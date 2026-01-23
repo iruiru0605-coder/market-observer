@@ -17,6 +17,7 @@ class PoliticalEvent:
     
     speaker: str
     summary: str
+    context: str  # 文脈（金融政策/関税/中央銀行独立性等）
     source_name: str
     original_text: str
     detected_keywords: List[str]
@@ -26,6 +27,7 @@ class PoliticalEvent:
         return {
             "speaker": self.speaker,
             "summary": self.summary,
+            "context": self.context,
             "source_name": self.source_name,
             "original_text": self.original_text[:200],
             "detected_keywords": self.detected_keywords,
@@ -47,40 +49,76 @@ class PoliticalEventDetector:
         "yellen": "イエレン財務長官",
     }
     
-    # 市場感応度の高いキーワード
-    MARKET_SENSITIVE_KEYWORDS = [
-        "tariff", "tariffs", "関税",
-        "trade", "trade war", "貿易",
-        "china", "中国",
-        "nato", "NATO",
-        "fed", "federal reserve", "FRB",
-        "interest rate", "金利",
-        "sanction", "制裁",
-        "greenland", "グリーンランド",
-        "canada", "カナダ",
-        "mexico", "メキシコ",
-    ]
+    # 市場感応度の高いキーワードと文脈カテゴリ
+    MARKET_SENSITIVE_KEYWORDS = {
+        # 関税・貿易
+        "tariff": "関税政策",
+        "tariffs": "関税政策",
+        "関税": "関税政策",
+        "trade": "貿易政策",
+        "trade war": "貿易政策",
+        "貿易": "貿易政策",
+        # 対外政策
+        "china": "対中国政策",
+        "中国": "対中国政策",
+        "nato": "外交・安全保障",
+        "greenland": "外交・安全保障",
+        "canada": "対北米政策",
+        "mexico": "対北米政策",
+        # 金融政策
+        "fed": "金融政策",
+        "federal reserve": "金融政策",
+        "frb": "金融政策",
+        "interest rate": "金融政策",
+        "rate cut": "金融政策",
+        "rate hike": "金融政策",
+        "金利": "金融政策",
+        # 制裁
+        "sanction": "経済制裁",
+        "制裁": "経済制裁",
+    }
     
-    # 信頼できるソース
-    TRUSTED_SOURCES = [
-        "reuters", "bloomberg", "cnbc", "politico",
-        "wall street journal", "financial times",
-        "marketwatch", "thestreet",
-    ]
+    # 要旨テンプレート
+    SUMMARY_TEMPLATES = {
+        "関税政策": {
+            "tariff": "関税変更に関する発言",
+            "default": "関税政策に関する発言",
+        },
+        "貿易政策": {
+            "trade war": "貿易摩擦に関する発言",
+            "default": "貿易政策に関する発言",
+        },
+        "対中国政策": {
+            "default": "対中国政策に関する発言",
+        },
+        "金融政策": {
+            "rate cut": "FRBに対する利下げ圧力を示唆",
+            "rate hike": "金利上昇への言及",
+            "fed": "中央銀行政策への言及",
+            "default": "金融政策に関する発言",
+        },
+        "外交・安全保障": {
+            "greenland": "グリーンランドに関する発言",
+            "nato": "NATO同盟に関する発言",
+            "default": "外交・安全保障に関する発言",
+        },
+        "対北米政策": {
+            "default": "北米諸国への政策発言",
+        },
+        "経済制裁": {
+            "default": "経済制裁に関する発言",
+        },
+    }
     
     def detect(self, news_list: List[Dict[str, Any]]) -> List[PoliticalEvent]:
         """
         ニュースリストから政治発言・市場感応イベントを検知
-        
-        Returns:
-            検知されたイベントのリスト
         """
         events = []
         
         for news in news_list:
             text = news.get("text", "").lower()
-            title = news.get("title", "").lower() if news.get("title") else text
-            source = news.get("source_name", "").lower()
+            source = news.get("source_name", "Unknown")
             
             # 発言者の特定
             speaker = None
@@ -92,23 +130,27 @@ class PoliticalEventDetector:
             if not speaker:
                 continue
             
-            # 市場感応キーワードの検出
+            # 市場感応キーワードと文脈の検出
             detected_keywords = []
-            for kw in self.MARKET_SENSITIVE_KEYWORDS:
+            context = None
+            
+            for kw, ctx in self.MARKET_SENSITIVE_KEYWORDS.items():
                 if kw.lower() in text:
                     detected_keywords.append(kw)
+                    if context is None:
+                        context = ctx
             
-            # 市場感応キーワードがない場合はスキップ
             if not detected_keywords:
                 continue
             
-            # 要旨の生成
-            summary = self._generate_summary(detected_keywords)
+            # 要旨の生成（具体化）
+            summary = self._generate_summary(context, detected_keywords, text)
             
             event = PoliticalEvent(
                 speaker=speaker,
                 summary=summary,
-                source_name=news.get("source_name", "Unknown"),
+                context=context or "その他",
+                source_name=source,
                 original_text=news.get("text", ""),
                 detected_keywords=detected_keywords,
             )
@@ -116,20 +158,16 @@ class PoliticalEventDetector:
         
         return events
     
-    def _generate_summary(self, keywords: List[str]) -> str:
-        """キーワードから要旨を生成"""
-        if "tariff" in keywords or "tariffs" in keywords or "関税" in keywords:
-            return "関税に関する発言"
-        elif "trade" in keywords or "貿易" in keywords:
-            return "貿易政策に関する発言"
-        elif "china" in keywords or "中国" in keywords:
-            return "対中国政策に関する発言"
-        elif "fed" in keywords or "interest rate" in keywords or "金利" in keywords:
-            return "金融政策に関する発言"
-        elif "greenland" in keywords:
-            return "グリーンランドに関する発言"
-        else:
-            return "市場感応度の高い発言"
+    def _generate_summary(self, context: str, keywords: List[str], text: str) -> str:
+        """キーワードから具体的な要旨を生成"""
+        templates = self.SUMMARY_TEMPLATES.get(context, {})
+        
+        # 具体的なキーワードに基づいて要旨を選択
+        for kw in keywords:
+            if kw in templates:
+                return templates[kw]
+        
+        return templates.get("default", "市場感応度の高い発言")
 
 
 def detect_political_events(news_list: List[Dict[str, Any]]) -> List[PoliticalEvent]:

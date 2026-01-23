@@ -9,6 +9,7 @@
 """
 from datetime import datetime
 from typing import Dict, Any, List, Optional
+from collections import Counter
 from config import get_log_filename
 
 
@@ -17,18 +18,11 @@ def generate_report(
     aggregate_scores: Dict[str, Any],
     alerts: List[Dict[str, str]],
     political_events: Optional[List] = None,
+    macro_observation = None,
     save_to_file: bool = True
 ) -> str:
     """
     日次市場観測レポートを生成
-    
-    構成:
-    - サマリー（総合スコア・評価保留状況）
-    - 変化点・アラート
-    - 国内外乖離
-    - シナリオ
-    - 政治発言・市場感応イベント（参考）
-    - 詳細ニュース一覧
     """
     now = datetime.now()
     news_count = aggregate_scores.get("news_count", 0)
@@ -45,7 +39,7 @@ def generate_report(
         "",
     ]
     
-    # ===== 1. サマリー（視認性向上） =====
+    # ===== 1. サマリー =====
     report_lines.extend([
         "┌─────────────────────────────────────────────────────┐",
         "│ 【サマリー】                                          │",
@@ -84,7 +78,22 @@ def generate_report(
         "",
     ])
     
-    # ===== 2. 変化点・アラート =====
+    # ===== 2. 評価保留ニュースの内訳 =====
+    zero_news = [n for n in scored_news_list if n.get("impact_score", 0) == 0]
+    if zero_news:
+        reason_counts = Counter(n.get("score_reason", "不明") for n in zero_news)
+        
+        report_lines.extend([
+            "┌─────────────────────────────────────────────────────┐",
+            "│ 【評価保留ニュースの内訳】                             │",
+            "└─────────────────────────────────────────────────────┘",
+        ])
+        
+        for reason, count in reason_counts.most_common():
+            report_lines.append(f"   ・{reason}: {count}件")
+        report_lines.append("")
+    
+    # ===== 3. 変化点・アラート =====
     report_lines.append("【変化点・アラート】")
     if alerts:
         for alert in alerts:
@@ -94,7 +103,7 @@ def generate_report(
         report_lines.append("   特筆すべき変化点は検出されませんでした")
     report_lines.append("")
     
-    # ===== 3. 国内外乖離 =====
+    # ===== 4. 国内外乖離 =====
     gap = aggregate_scores.get("domestic_foreign_gap", 0)
     report_lines.extend([
         "【国内外乖離分析】",
@@ -113,14 +122,37 @@ def generate_report(
         "",
     ])
     
-    # ===== 4. シナリオ =====
+    # ===== 5. シナリオ =====
     report_lines.append("【考えられるシナリオ】")
     scenarios = _generate_scenarios(total, gap, alerts, zero_count, news_count)
     for i, scenario in enumerate(scenarios, 1):
         report_lines.append(f"   シナリオ{i}: {scenario}")
     report_lines.append("")
     
-    # ===== 5. 政治発言・市場感応イベント（参考） =====
+    # ===== 6. マクロ環境観測 =====
+    if macro_observation and macro_observation.total_count > 0:
+        report_lines.extend([
+            "┌─────────────────────────────────────────────────────┐",
+            "│ 【マクロ環境観測（為替・金利・指標）】                   │",
+            "│ ※スコアに直接影響なし・前提条件として注視が必要        │",
+            "└─────────────────────────────────────────────────────┘",
+        ])
+        
+        if macro_observation.fx_count > 0:
+            kws = ", ".join(macro_observation.fx_keywords[:3])
+            report_lines.append(f"   📈 為替関連: {macro_observation.fx_count}件 ({kws})")
+        
+        if macro_observation.rates_count > 0:
+            kws = ", ".join(macro_observation.rates_keywords[:3])
+            report_lines.append(f"   📉 金利・国債関連: {macro_observation.rates_count}件 ({kws})")
+        
+        if macro_observation.data_count > 0:
+            kws = ", ".join(macro_observation.data_keywords[:3])
+            report_lines.append(f"   📊 経済指標関連: {macro_observation.data_count}件 ({kws})")
+        
+        report_lines.append("")
+    
+    # ===== 7. 政治発言・市場感応イベント =====
     if political_events:
         report_lines.extend([
             "┌─────────────────────────────────────────────────────┐",
@@ -133,13 +165,14 @@ def generate_report(
             report_lines.extend([
                 f"   - 発言者: {event_dict.get('speaker', '不明')}",
                 f"     要旨: {event_dict.get('summary', '不明')}",
+                f"     文脈: {event_dict.get('context', '不明')}",
+                f"     初出ソース: {event_dict.get('source_name', '不明')}",
                 f"     市場評価: {event_dict.get('evaluation', '未評価')}",
-                f"     位置付け: {event_dict.get('position', '観測対象')}",
                 "",
             ])
     report_lines.append("")
     
-    # ===== 6. 注意点 =====
+    # ===== 8. 注意点 =====
     report_lines.extend([
         "【注意点】",
         "   ・本レポートは情報整理を目的としており、投資助言ではありません",
@@ -152,7 +185,7 @@ def generate_report(
     
     report = "\n".join(report_lines)
     
-    # ===== 7. 詳細ニュース一覧 =====
+    # ===== 9. 詳細ニュース一覧 =====
     detail_lines = [
         "",
         "┌─────────────────────────────────────────────────────┐",
@@ -168,9 +201,12 @@ def generate_report(
         source = news.get('source', '-')
         text = news.get('text', '')[:100]
         
+        # スコア変動マーク（±2以上）
+        mark = " ★" if abs(score) >= 2 else ""
+        
         detail_lines.extend([
             "",
-            f"[{source}] スコア: {score:+d}",
+            f"[{source}] スコア: {score:+d}{mark}",
             f"  分類: {category}{sub}",
             f"  判定理由: {reason}",
             f"  内容: {text}...",
