@@ -19,12 +19,14 @@ from analyzer import (
     score_news_batch, 
     calculate_aggregate_scores, 
     detect_political_events,
-    observe_macro
+    observe_macro,
+    detect_triggers
 )
 from alert import AlertDetector
 from report import generate_report
 from fetcher import fetch_news
 from models import NewsDTO
+from data import get_history_manager
 
 
 def main():
@@ -95,14 +97,67 @@ def main():
     macro_observation = observe_macro(news_list)
     print(f"   ✓ マクロ環境観測完了: {macro_observation.total_count}件")
     
-    # ===== 4. レポート生成 =====
+    # ===== 4. 統計情報の計算 =====
+    news_count = aggregates.get("news_count", 0)
+    zero_count = aggregates.get("zero_score_count", 0)
+    zero_ratio = (zero_count / news_count * 100) if news_count > 0 else 0
+    
+    plus2_count = sum(1 for n in scored if n.get("impact_score", 0) >= 2)
+    minus2_count = sum(1 for n in scored if n.get("impact_score", 0) <= -2)
+    plus2_ratio = (plus2_count / news_count * 100) if news_count > 0 else 0
+    minus2_ratio = (minus2_count / news_count * 100) if news_count > 0 else 0
+    
+    macro_ratio = (macro_observation.total_count / news_count * 100) if news_count > 0 else 0
+    
+    # ===== 5. 履歴管理 =====
+    history_manager = get_history_manager()
+    
+    # 過去7日間との比較
+    current_data = {
+        "total_score": aggregates.get("total_score", 0),
+        "zero_ratio": zero_ratio,
+        "plus2_ratio": plus2_ratio,
+        "minus2_ratio": minus2_ratio,
+    }
+    history_comparison = history_manager.get_7day_comparison(current_data)
+    
+    # 連続高評価保留日数を取得
+    consecutive_high_zero = history_manager.get_consecutive_high_zero_days()
+    if zero_ratio > 80:
+        consecutive_high_zero += 1  # 当日も含める
+    
+    # 本日のデータを履歴に追加
+    history_manager.add_daily_record(
+        total_score=aggregates.get("total_score", 0),
+        zero_ratio=zero_ratio,
+        plus2_ratio=plus2_ratio,
+        minus2_ratio=minus2_ratio,
+        news_count=news_count,
+        macro_ratio=macro_ratio,
+    )
+    
+    print(f"   ✓ 履歴更新完了")
+    
+    # ===== 6. トリガー検知 =====
+    triggers = detect_triggers(
+        zero_ratio=zero_ratio,
+        plus2_ratio=plus2_ratio,
+        minus2_ratio=minus2_ratio,
+        macro_ratio=macro_ratio,
+        consecutive_high_zero_days=consecutive_high_zero,
+    )
+    print(f"   ✓ トリガー検知完了: {len(triggers)}件")
+    
+    # ===== 7. レポート生成 =====
     print()
     report = generate_report(
         scored, 
         aggregates, 
         alerts, 
         political_events,
-        macro_observation
+        macro_observation,
+        history_comparison,
+        triggers
     )
     print()
     print(report)
