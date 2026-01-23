@@ -4,3 +4,4 @@ from .scorer import calculate_impact_score, score_news_batch, calculate_aggregat
 from .political_detector import detect_political_events, PoliticalEvent
 from .macro_observer import observe_macro, MacroObservation
 from .trigger_detector import detect_triggers, Trigger
+from .priority_macro import detect_priority_macro, PriorityMacro

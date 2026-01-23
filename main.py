@@ -2,14 +2,16 @@
 Market Observer - メインエントリポイント
 投資市場観測・助言ツール（完全自動実行版）
 
-【重要】
-このツールは投資判断を行いません。
+【設計思想】
+このツールは投資判断そのものを行わず、
+利用者（人間）が判断するための
+「情報の重要度・信頼度・現在の判断しやすさ」を構造的に可視化する。
+
 - ❌ 売買指示
-- ❌ 銘柄・数量の提案
-- ❌ 断定的な将来予測
-- ✅ 情報収集・構造化
-- ✅ 定量評価・変化検知
-- ✅ 判断材料の提示
+- ❌ 将来予測
+- ❌ 断定表現
+- ✅ 「判断しやすいのか／しにくいのか」を可視化
+- ✅ 「どの情報を重視すべき日なのか」を伝える
 """
 import sys
 from datetime import datetime
@@ -20,7 +22,8 @@ from analyzer import (
     calculate_aggregate_scores, 
     detect_political_events,
     observe_macro,
-    detect_triggers
+    detect_triggers,
+    detect_priority_macro
 )
 from alert import AlertDetector
 from report import generate_report
@@ -97,6 +100,10 @@ def main():
     macro_observation = observe_macro(news_list)
     print(f"   ✓ マクロ環境観測完了: {macro_observation.total_count}件")
     
+    # 最優先マクロ検知（新規追加）
+    priority_macro = detect_priority_macro(news_list)
+    print(f"   ✓ 最優先マクロ検知完了: {priority_macro.total_count}件")
+    
     # ===== 4. 統計情報の計算 =====
     news_count = aggregates.get("news_count", 0)
     zero_count = aggregates.get("zero_score_count", 0)
@@ -112,7 +119,6 @@ def main():
     # ===== 5. 履歴管理 =====
     history_manager = get_history_manager()
     
-    # 過去7日間との比較
     current_data = {
         "total_score": aggregates.get("total_score", 0),
         "zero_ratio": zero_ratio,
@@ -121,12 +127,10 @@ def main():
     }
     history_comparison = history_manager.get_7day_comparison(current_data)
     
-    # 連続高評価保留日数を取得
     consecutive_high_zero = history_manager.get_consecutive_high_zero_days()
     if zero_ratio > 80:
-        consecutive_high_zero += 1  # 当日も含める
+        consecutive_high_zero += 1
     
-    # 本日のデータを履歴に追加
     history_manager.add_daily_record(
         total_score=aggregates.get("total_score", 0),
         zero_ratio=zero_ratio,
@@ -157,7 +161,8 @@ def main():
         political_events,
         macro_observation,
         history_comparison,
-        triggers
+        triggers,
+        priority_macro
     )
     print()
     print(report)

@@ -2,10 +2,10 @@
 レポート生成モジュール
 日次市場観測レポートを生成
 
-【重要】
-- このレポートは「観測・状況整理」を目的とする
-- 投資助言・売買示唆につながる表現は禁止
-- +0 = 失敗ではなく「方向性を断定できない」状態
+【設計思想】
+- 投資判断そのものを行わない
+- 「判断しやすいのか／しにくいのか」を可視化
+- 「どの情報を重視すべき日なのか」を伝える
 - 初心者でも理解できる平易な日本語を使用
 """
 from datetime import datetime
@@ -22,6 +22,7 @@ def generate_report(
     macro_observation = None,
     history_comparison: Optional[Dict[str, Any]] = None,
     triggers: Optional[List] = None,
+    priority_macro = None,
     save_to_file: bool = True
 ) -> str:
     """
@@ -32,10 +33,6 @@ def generate_report(
     zero_count = aggregate_scores.get("zero_score_count", 0)
     zero_ratio = (zero_count / news_count * 100) if news_count > 0 else 0
     total = aggregate_scores.get("total_score", 0)
-    
-    # スコア分布を計算
-    plus2_count = sum(1 for n in scored_news_list if n.get("impact_score", 0) >= 2)
-    minus2_count = sum(1 for n in scored_news_list if n.get("impact_score", 0) <= -2)
     
     # ===== ヘッダー =====
     report_lines = [
@@ -59,15 +56,100 @@ def generate_report(
         "",
     ])
     
-    # ===== 2. 今日の一言まとめ（新規追加） =====
-    one_liner = _generate_one_liner(total, zero_ratio)
+    # ===== 2. 今日の一言まとめ =====
+    one_liner = _generate_one_liner(total, zero_ratio, priority_macro)
     report_lines.extend([
         f"📝 今日の一言まとめ",
         f"   {one_liner}",
         "",
     ])
     
-    # ===== 3. 過去7日間との比較 =====
+    # ===== 3. 本日の判断に影響しやすい要素（最重要セクション） =====
+    report_lines.extend([
+        "┌─────────────────────────────────────────────────────┐",
+        "│ 【本日の判断に影響しやすい要素】                        │",
+        "│ ※これらの情報は、市場全体の方向性に関わる重要な材料です  │",
+        "└─────────────────────────────────────────────────────┘",
+    ])
+    
+    has_any_priority = False
+    
+    if priority_macro:
+        # 金利関連
+        report_lines.append("   🔴 金利関連（判断の土台）")
+        if priority_macro.has_fed:
+            report_lines.append(f"      ・FRB関連ニュース: {len(priority_macro.fed_news)}件あり")
+            has_any_priority = True
+        else:
+            report_lines.append("      ・FRB関連ニュース: 本日は該当ニュースなし")
+        
+        if priority_macro.has_treasury:
+            report_lines.append(f"      ・米国債利回り関連: {len(priority_macro.treasury_news)}件あり")
+            has_any_priority = True
+        else:
+            report_lines.append("      ・米国債利回り関連: 本日は該当ニュースなし")
+        
+        report_lines.append("")
+        
+        # 為替関連
+        report_lines.append("   🔴 為替関連（判断の土台）")
+        if priority_macro.has_usdjpy:
+            report_lines.append(f"      ・ドル円関連ニュース: {len(priority_macro.usdjpy_news)}件あり")
+            has_any_priority = True
+        else:
+            report_lines.append("      ・ドル円関連ニュース: 本日は該当ニュースなし")
+        
+        report_lines.append("")
+        
+        # 主要経済指標
+        report_lines.append("   🔴 主要経済指標（判断の土台）")
+        if priority_macro.has_employment:
+            report_lines.append(f"      ・雇用統計関連: {len(priority_macro.employment_news)}件あり")
+            has_any_priority = True
+        else:
+            report_lines.append("      ・雇用統計関連: 本日は該当ニュースなし")
+        
+        if priority_macro.has_inflation:
+            report_lines.append(f"      ・物価指標関連: {len(priority_macro.inflation_news)}件あり")
+            has_any_priority = True
+        else:
+            report_lines.append("      ・物価指標関連: 本日は該当ニュースなし")
+        
+        if priority_macro.has_ism:
+            report_lines.append(f"      ・景況感指標（ISM等）: {len(priority_macro.ism_news)}件あり")
+            has_any_priority = True
+        else:
+            report_lines.append("      ・景況感指標（ISM等）: 本日は該当ニュースなし")
+    else:
+        report_lines.append("   ※ 最優先マクロ情報の検知を実行していません")
+    
+    report_lines.append("")
+    
+    # 政治発言（高優先度のみ）
+    high_priority_political = _filter_high_priority_political(political_events)
+    report_lines.append("   🟠 政治発言（条件付き高優先）")
+    if high_priority_political:
+        for event in high_priority_political:
+            event_dict = event.to_dict() if hasattr(event, 'to_dict') else event
+            context = event_dict.get("context", "")
+            if context in ["金融政策", "関税政策", "貿易政策"]:
+                report_lines.append(f"      ・{event_dict.get('speaker', '不明')}: {event_dict.get('summary', '不明')}")
+                has_any_priority = True
+    
+    if not high_priority_political:
+        report_lines.append("      ・金融政策・関税関連の発言: 本日は該当ニュースなし")
+    
+    report_lines.append("")
+    
+    # 判断しやすさの総評
+    if has_any_priority:
+        report_lines.append("   📍 判断のしやすさ: 判断材料が出ている日です。上記の情報を確認してください。")
+    else:
+        report_lines.append("   📍 判断のしやすさ: 判断の土台となる情報が少ない日です。様子見が妥当かもしれません。")
+    
+    report_lines.append("")
+    
+    # ===== 4. 過去7日間との比較 =====
     if history_comparison and history_comparison.get("has_history"):
         report_lines.extend([
             "┌─────────────────────────────────────────────────────┐",
@@ -82,7 +164,6 @@ def generate_report(
         report_lines.append(f"   ※ 過去{days}日分のデータと比較しています")
         report_lines.append("")
         
-        # 総合スコア比較
         report_lines.append(f"   ・過去{days}日平均の総合スコア: {avg_total:+.2f}")
         report_lines.append(f"   ・本日の総合スコア: {total:+.1f}")
         
@@ -96,7 +177,6 @@ def generate_report(
         
         report_lines.append("")
         
-        # 評価保留比較
         report_lines.append("   ・評価保留（判断がつかないニュース）の割合")
         report_lines.append(f"     過去{days}日平均: {avg_zero:.0f}%")
         report_lines.append(f"     本日: {zero_ratio:.0f}%")
@@ -111,7 +191,7 @@ def generate_report(
         
         report_lines.append("")
     
-    # ===== 4. 観測メモ（トリガー） =====
+    # ===== 5. 観測メモ（トリガー） =====
     report_lines.extend([
         "┌─────────────────────────────────────────────────────┐",
         "│ 【観測メモ（自動検知）】                                │",
@@ -129,7 +209,7 @@ def generate_report(
     
     report_lines.append("")
     
-    # ===== 5. 評価保留ニュースの内訳 =====
+    # ===== 6. 評価保留ニュースの内訳 =====
     zero_news = [n for n in scored_news_list if n.get("impact_score", 0) == 0]
     if zero_news:
         reason_counts = Counter(n.get("score_reason", "不明") for n in zero_news)
@@ -144,13 +224,12 @@ def generate_report(
         for reason, count in reason_counts.most_common():
             report_lines.append(f"   ・{reason}: {count}件")
         
-        # まとめコメントを追加
         summary_comment = _generate_zero_summary(reason_counts)
         report_lines.append("")
         report_lines.append(f"   → {summary_comment}")
         report_lines.append("")
     
-    # ===== 6. 変化点・アラート =====
+    # ===== 7. 変化点・アラート =====
     report_lines.append("【変化点・アラート】")
     if alerts:
         for alert in alerts:
@@ -160,56 +239,17 @@ def generate_report(
         report_lines.append("   特に大きな変化は見られませんでした。")
     report_lines.append("")
     
-    # ===== 7. 国内外乖離 =====
-    gap = aggregate_scores.get("domestic_foreign_gap", 0)
-    report_lines.extend([
-        "【国内と海外の比較】",
-        f"   スコアの差: {gap:+.1f}",
-    ])
-    
-    if abs(gap) < 2:
-        gap_analysis = "国内と海外で、ニュースの受け止め方に大きな差はありません。"
-    elif gap >= 2:
-        gap_analysis = "国内の方が、海外より楽観的なニュースが多いようです。"
-    else:
-        gap_analysis = "国内の方が、海外より慎重なニュースが多いようです。"
-    
-    report_lines.extend([
-        f"   {gap_analysis}",
-        "",
-    ])
-    
-    # ===== 8. シナリオ（注意書き追加） =====
+    # ===== 8. 今後の可能性 =====
     report_lines.extend([
         "【今後の可能性（参考）】",
         "※将来予測ではなく、「こういう見方もできる」という整理です",
     ])
-    scenarios = _generate_scenarios(total, gap, alerts, zero_count, news_count)
+    scenarios = _generate_scenarios(total, zero_count, news_count, has_any_priority)
     for i, scenario in enumerate(scenarios, 1):
         report_lines.append(f"   可能性{i}: {scenario}")
     report_lines.append("")
     
-    # ===== 9. マクロ環境観測 =====
-    if macro_observation and macro_observation.total_count > 0:
-        report_lines.extend([
-            "┌─────────────────────────────────────────────────────┐",
-            "│ 【経済の大きな流れ（金利・為替・指標）】                │",
-            "│ ※株価に直接影響しませんが、背景として重要です        │",
-            "└─────────────────────────────────────────────────────┘",
-        ])
-        
-        if macro_observation.fx_count > 0:
-            report_lines.append(f"   📈 為替（ドル・円など）に関するニュース: {macro_observation.fx_count}件")
-        
-        if macro_observation.rates_count > 0:
-            report_lines.append(f"   📉 金利・国債に関するニュース: {macro_observation.rates_count}件")
-        
-        if macro_observation.data_count > 0:
-            report_lines.append(f"   📊 経済指標に関するニュース: {macro_observation.data_count}件")
-        
-        report_lines.append("")
-    
-    # ===== 10. 政治発言（整理表示） =====
+    # ===== 9. 重要人物の発言 =====
     if political_events:
         report_lines.extend([
             "┌─────────────────────────────────────────────────────┐",
@@ -218,7 +258,6 @@ def generate_report(
             "└─────────────────────────────────────────────────────┘",
         ])
         
-        # 発言者ごとにグループ化
         grouped = _group_political_events(political_events)
         
         for speaker, data in grouped.items():
@@ -234,7 +273,7 @@ def generate_report(
             report_lines.append(f"     主な情報源: {sources}")
             report_lines.append("")
     
-    # ===== 11. 注意点 =====
+    # ===== 10. 注意点 =====
     report_lines.extend([
         "【このレポートについて】",
         "   ・このレポートは情報をまとめたものであり、投資のアドバイスではありません。",
@@ -246,7 +285,7 @@ def generate_report(
     
     report = "\n".join(report_lines)
     
-    # ===== 12. 詳細ニュース一覧 =====
+    # ===== 11. 詳細ニュース一覧 =====
     detail_lines = [
         "",
         "┌─────────────────────────────────────────────────────┐",
@@ -264,7 +303,6 @@ def generate_report(
         source = news.get('source', '-')
         text = news.get('text', '')[:100]
         
-        # スコア変動マーク（±2以上）
         mark = " ★" if abs(score) >= 2 else ""
         
         detail_lines.extend([
@@ -288,22 +326,26 @@ def generate_report(
     return report + details
 
 
-def _generate_one_liner(total: float, zero_ratio: float) -> str:
+def _generate_one_liner(total: float, zero_ratio: float, priority_macro) -> str:
     """今日の一言まとめを生成"""
-    if zero_ratio >= 70:
-        return "今日は「判断材料が少なく、方向性を決めにくい日」です。"
-    elif zero_ratio >= 50:
-        return "今日は「はっきりしたニュースが少なめの日」です。"
-    elif total >= 3:
-        return "今日は「良いニュースが目立つ日」です。"
-    elif total >= 1:
-        return "今日は「やや良いニュースがある日」です。"
-    elif total <= -3:
-        return "今日は「心配なニュースが目立つ日」です。"
-    elif total <= -1:
-        return "今日は「やや気になるニュースがある日」です。"
+    has_priority = priority_macro and priority_macro.has_any if priority_macro else False
+    
+    if has_priority:
+        if zero_ratio >= 50:
+            return "今日は「重要な情報が出ているが、全体的には判断材料が少ない日」です。"
+        else:
+            return "今日は「判断材料が揃っている日」です。重要情報を確認してください。"
     else:
-        return "今日は「特に大きな動きがない日」です。"
+        if zero_ratio >= 70:
+            return "今日は「判断材料が少なく、方向性を決めにくい日」です。"
+        elif zero_ratio >= 50:
+            return "今日は「はっきりしたニュースが少なめの日」です。"
+        elif total >= 3:
+            return "今日は「良いニュースが目立つ日」です。"
+        elif total <= -3:
+            return "今日は「心配なニュースが目立つ日」です。"
+        else:
+            return "今日は「特に大きな動きがない日」です。"
 
 
 def _generate_zero_summary(reason_counts: Counter) -> str:
@@ -318,6 +360,21 @@ def _generate_zero_summary(reason_counts: Counter) -> str:
         return "今日は「話題性のあるニュースが多いが、市場への影響は限定的」な状況でした。"
     else:
         return "今日は「判断に使いにくいニュースが多い」状況でした。"
+
+
+def _filter_high_priority_political(events: Optional[List]) -> List:
+    """高優先度の政治発言をフィルタリング"""
+    if not events:
+        return []
+    
+    high_priority = []
+    for event in events:
+        event_dict = event.to_dict() if hasattr(event, 'to_dict') else event
+        context = event_dict.get("context", "")
+        if context in ["金融政策", "関税政策", "貿易政策"]:
+            high_priority.append(event)
+    
+    return high_priority
 
 
 def _group_political_events(events: List) -> Dict[str, Any]:
@@ -343,19 +400,16 @@ def _group_political_events(events: List) -> Dict[str, Any]:
     return grouped
 
 
-def _generate_scenarios(total_score: float, gap: float, alerts: List, zero_count: int, news_count: int) -> List[str]:
-    """シナリオを生成（安全な表現）"""
+def _generate_scenarios(total_score: float, zero_count: int, news_count: int, has_priority: bool) -> List[str]:
+    """シナリオを生成"""
     scenarios = []
     
-    if news_count > 0 and zero_count / news_count > 0.5:
+    if has_priority:
+        scenarios.append("重要な情報が出ているため、それに沿った動きが出る可能性があります。")
+        scenarios.append("ただし、他の要因で打ち消される可能性もあります。")
+    elif news_count > 0 and zero_count / news_count > 0.5:
         scenarios.append("はっきりしたニュースが出るまで、動きが少ない状態が続く可能性があります。")
         scenarios.append("新しいニュースが出れば、方向性が見えてくる可能性があります。")
-    elif total_score >= 3:
-        scenarios.append("良いニュースが続けば、しばらく良い流れが続く可能性があります。")
-        scenarios.append("一度調整が入る可能性もあります。")
-    elif total_score <= -3:
-        scenarios.append("悪いニュースが一段落すれば、回復の動きが出る可能性があります。")
-        scenarios.append("さらに気になるニュースが続く可能性もあります。")
     else:
         scenarios.append("新しいニュースを待つ状態が続く可能性があります。")
         scenarios.append("何か大きなニュースが出れば、方向性が決まる可能性があります。")
