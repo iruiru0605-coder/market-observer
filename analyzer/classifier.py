@@ -84,12 +84,16 @@ def classify_news_batch(news_list: List[Dict[str, str]]) -> List[Dict[str, Any]]
     複数ニュースを一括分類
     
     Args:
-        news_list: [{"text": "...", "source": "domestic/foreign"}, ...]
+        news_list: [{"text": "...", "source": "domestic/foreign", "url": "...", ...}, ...]
     
     Returns:
-        分類結果リスト
+        分類結果リスト（元データのフィールドを保持）
     """
-    return [
-        classify_news(item["text"], item.get("source", "domestic"))
-        for item in news_list
-    ]
+    results = []
+    for item in news_list:
+        # 分類を実行
+        classified = classify_news(item["text"], item.get("source", "domestic"))
+        # 元データのフィールドを保持（url, title, description等）
+        merged = {**item, **classified}
+        results.append(merged)
+    return results

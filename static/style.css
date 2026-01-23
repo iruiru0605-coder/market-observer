@@ -88,7 +88,9 @@ body {
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .hidden {
@@ -450,6 +452,23 @@ body {
     font-size: 0.85rem;
     color: var(--text-secondary);
     margin-bottom: 8px;
+}
+
+.news-item .title {
+    margin-bottom: 8px;
+}
+
+.news-item .title a {
+    color: var(--accent-blue);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 1rem;
+    line-height: 1.4;
+}
+
+.news-item .title a:hover {
+    text-decoration: underline;
+    color: #4db5f9;
 }
 
 .news-item .text {

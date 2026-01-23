@@ -230,16 +230,21 @@ function renderNews(containerId, news, type) {
         const score = n.impact_score || 0;
         const scoreClass = score > 0 ? 'positive' : (score < 0 ? 'negative' : 'neutral');
         const star = Math.abs(score) >= 2 ? ' ★' : '';
+        const url = n.url || '#';
+        const title = n.title || (n.text || '').substring(0, 80);
 
         return `
             <div class="news-item">
                 <div class="header">
-                    <span class="source">${n.source || 'Unknown'}</span>
+                    <span class="source">${n.source_name || n.source || 'Unknown'}</span>
                     <span class="score ${scoreClass}">${score >= 0 ? '+' : ''}${score}${star}</span>
+                </div>
+                <div class="title">
+                    <a href="${url}" target="_blank" rel="noopener noreferrer">${title}</a>
                 </div>
                 <div class="category">${n.category_name || ''} ${n.sub_category ? '(' + n.sub_category + ')' : ''}</div>
                 <div class="reason">判定理由: ${n.score_reason || '-'}</div>
-                <div class="text">${(n.text || '').substring(0, 150)}...</div>
+                <div class="text">${(n.description || n.text || '').substring(0, 150)}...</div>
             </div>
         `;
     }).join('');
