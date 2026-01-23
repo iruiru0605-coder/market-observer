@@ -8,7 +8,7 @@
 - +0 = 失敗ではなく「方向性を断定できない」状態
 """
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from config import get_log_filename
 
 
@@ -16,63 +16,76 @@ def generate_report(
     scored_news_list: List[Dict[str, Any]],
     aggregate_scores: Dict[str, Any],
     alerts: List[Dict[str, str]],
+    political_events: Optional[List] = None,
     save_to_file: bool = True
 ) -> str:
     """
     日次市場観測レポートを生成
     
     構成:
-    - 総合スコア
-    - 変化点
+    - サマリー（総合スコア・評価保留状況）
+    - 変化点・アラート
     - 国内外乖離
-    - 考えられるシナリオ（複数）
-    - 注意点
+    - シナリオ
+    - 政治発言・市場感応イベント（参考）
+    - 詳細ニュース一覧
     """
     now = datetime.now()
+    news_count = aggregate_scores.get("news_count", 0)
+    zero_count = aggregate_scores.get("zero_score_count", 0)
+    zero_ratio = (zero_count / news_count * 100) if news_count > 0 else 0
+    total = aggregate_scores.get("total_score", 0)
     
+    # ===== ヘッダー =====
     report_lines = [
         "=" * 60,
-        f"📊 日次市場観測レポート",
+        "📊 日次市場観測レポート",
         f"   生成日時: {now.strftime('%Y年%m月%d日 %H:%M')}",
         "=" * 60,
         "",
-        "【1. 総合スコア】",
-        f"   総合: {aggregate_scores.get('total_score', 0):+.1f}",
-        f"   国内: {aggregate_scores.get('domestic_score', 0):+.1f}",
-        f"   海外: {aggregate_scores.get('foreign_score', 0):+.1f}",
-        f"   分析ニュース数: {aggregate_scores.get('news_count', 0)}件",
-        f"   評価保留（±0）: {aggregate_scores.get('zero_score_count', 0)}件",
-        "",
     ]
     
-    # スコア解釈（観測・状況整理トーン）
-    total = aggregate_scores.get("total_score", 0)
-    zero_count = aggregate_scores.get("zero_score_count", 0)
-    news_count = aggregate_scores.get("news_count", 0)
-    
-    if total >= 5:
-        interpretation = "市場はポジティブ材料が優勢と観測される状況"
-    elif total >= 2:
-        interpretation = "やや好材料が多い状況"
-    elif total <= -5:
-        interpretation = "市場はネガティブ材料が優勢と観測される状況"
-    elif total <= -2:
-        interpretation = "やや悪材料が多い状況"
-    else:
-        interpretation = "平常レンジ内（材料混在または方向性不明確）"
-    
+    # ===== 1. サマリー（視認性向上） =====
     report_lines.extend([
-        f"   状況: {interpretation}",
+        "┌─────────────────────────────────────────────────────┐",
+        "│ 【サマリー】                                          │",
+        "├─────────────────────────────────────────────────────┤",
+        f"│  総合スコア: {total:+.1f}                                      │",
+        f"│  国内: {aggregate_scores.get('domestic_score', 0):+.1f}  /  海外: {aggregate_scores.get('foreign_score', 0):+.1f}                         │",
+        f"│  分析ニュース数: {news_count}件                               │",
+        f"│  評価保留（±0）: {zero_count} / {news_count} 件（約{zero_ratio:.0f}%）              │",
+        "└─────────────────────────────────────────────────────┘",
+        "",
     ])
     
-    # 評価保留が多い場合の補足
-    if news_count > 0 and zero_count / news_count > 0.5:
-        report_lines.append(f"   備考: 分析対象の過半数が評価保留となっており、明確な方向性が見出しにくい状況")
+    # 状況解釈
+    if zero_ratio >= 50:
+        situation = "過半数が評価保留 → 方向性判断は困難な状態"
+        explanation = "現時点では材料が出揃っていません。方向性確定には追加情報が必要です。"
+    elif total >= 5:
+        situation = "ポジティブ材料が優勢"
+        explanation = "好材料が多く検出されています。"
+    elif total >= 2:
+        situation = "やや好材料が多い状況"
+        explanation = "一部に好材料が見られます。"
+    elif total <= -5:
+        situation = "ネガティブ材料が優勢"
+        explanation = "懸念材料が多く検出されています。"
+    elif total <= -2:
+        situation = "やや懸念材料が多い状況"
+        explanation = "一部に懸念材料が見られます。"
+    else:
+        situation = "平常レンジ内（材料混在）"
+        explanation = "好悪材料が混在しており、明確な方向性は見出しにくい状況です。"
     
-    report_lines.append("")
+    report_lines.extend([
+        f"📍 状況: {situation}",
+        f"   {explanation}",
+        "",
+    ])
     
-    # 変化点（アラート）
-    report_lines.append("【2. 変化点・アラート】")
+    # ===== 2. 変化点・アラート =====
+    report_lines.append("【変化点・アラート】")
     if alerts:
         for alert in alerts:
             severity = "⚠️" if alert.get("severity") == "warning" else "ℹ️"
@@ -81,35 +94,54 @@ def generate_report(
         report_lines.append("   特筆すべき変化点は検出されませんでした")
     report_lines.append("")
     
-    # 国内外乖離
+    # ===== 3. 国内外乖離 =====
     gap = aggregate_scores.get("domestic_foreign_gap", 0)
     report_lines.extend([
-        "【3. 国内外乖離分析】",
+        "【国内外乖離分析】",
         f"   乖離幅: {gap:+.1f}",
     ])
     
     if abs(gap) < 2:
         gap_analysis = "国内外で市場認識に大きな差異なし"
     elif gap >= 2:
-        gap_analysis = "国内市場が海外より楽観的な傾向。海外リスクへの警戒を考慮"
+        gap_analysis = "国内市場が海外より楽観的な傾向"
     else:
-        gap_analysis = "国内市場が海外より悲観的な傾向。海外の好材料が未反映の可能性"
+        gap_analysis = "国内市場が海外より悲観的な傾向"
     
     report_lines.extend([
         f"   分析: {gap_analysis}",
         "",
     ])
     
-    # シナリオ整理（非指示・複数提示）
-    report_lines.append("【4. 考えられるシナリオ】")
+    # ===== 4. シナリオ =====
+    report_lines.append("【考えられるシナリオ】")
     scenarios = _generate_scenarios(total, gap, alerts, zero_count, news_count)
     for i, scenario in enumerate(scenarios, 1):
         report_lines.append(f"   シナリオ{i}: {scenario}")
     report_lines.append("")
     
-    # 注意点
+    # ===== 5. 政治発言・市場感応イベント（参考） =====
+    if political_events:
+        report_lines.extend([
+            "┌─────────────────────────────────────────────────────┐",
+            "│ 【参考：政治発言・市場感応イベント】                    │",
+            "│ ※スコア付与なし・総合スコアに影響なし                  │",
+            "└─────────────────────────────────────────────────────┘",
+        ])
+        for event in political_events:
+            event_dict = event.to_dict() if hasattr(event, 'to_dict') else event
+            report_lines.extend([
+                f"   - 発言者: {event_dict.get('speaker', '不明')}",
+                f"     要旨: {event_dict.get('summary', '不明')}",
+                f"     市場評価: {event_dict.get('evaluation', '未評価')}",
+                f"     位置付け: {event_dict.get('position', '観測対象')}",
+                "",
+            ])
+    report_lines.append("")
+    
+    # ===== 6. 注意点 =====
     report_lines.extend([
-        "【5. 注意点】",
+        "【注意点】",
         "   ・本レポートは情報整理を目的としており、投資助言ではありません",
         "   ・スコアは過去材料の定量化であり、将来を予測するものではありません",
         "   ・評価保留（±0）は「判断できない」状態を示し、失敗ではありません",
@@ -120,47 +152,50 @@ def generate_report(
     
     report = "\n".join(report_lines)
     
+    # ===== 7. 詳細ニュース一覧 =====
+    detail_lines = [
+        "",
+        "┌─────────────────────────────────────────────────────┐",
+        "│ 【詳細ニュース一覧】                                    │",
+        "└─────────────────────────────────────────────────────┘",
+    ]
+    
+    for news in scored_news_list:
+        score = news.get('impact_score', 0)
+        reason = news.get('score_reason', '理由なし')
+        category = news.get('category_name', '-')
+        sub = f" ({news['sub_category']})" if news.get("sub_category") else ""
+        source = news.get('source', '-')
+        text = news.get('text', '')[:100]
+        
+        detail_lines.extend([
+            "",
+            f"[{source}] スコア: {score:+d}",
+            f"  分類: {category}{sub}",
+            f"  判定理由: {reason}",
+            f"  内容: {text}...",
+        ])
+    
+    details = "\n".join(detail_lines)
+    
     # ファイル保存
     if save_to_file:
         log_path = get_log_filename()
         with open(log_path, "w", encoding="utf-8") as f:
             f.write(report)
-            f.write("\n\n--- 詳細ニュース一覧 ---\n")
-            for news in scored_news_list:
-                score = news.get('impact_score', 0)
-                reason = news.get('score_reason', '理由なし')
-                f.write(f"\n[{news.get('source', '-')}] スコア:{score:+d}\n")
-                f.write(f"  分類: {news.get('category_name', '-')}")
-                if news.get("sub_category"):
-                    f.write(f" ({news['sub_category']})")
-                f.write(f"\n  判定理由: {reason}\n")
-                f.write(f"  内容: {news.get('text', '')[:150]}...\n")
+            f.write(details)
         print(f"\n📁 レポート保存: {log_path}")
     
-    # コンソール出力用に詳細も追加
-    report += "\n\n--- 詳細ニュース一覧 ---\n"
-    for news in scored_news_list:
-        score = news.get('impact_score', 0)
-        reason = news.get('score_reason', '理由なし')
-        report += f"\n[{news.get('source', '-')}] スコア:{score:+d}\n"
-        report += f"  分類: {news.get('category_name', '-')}"
-        if news.get("sub_category"):
-            report += f" ({news['sub_category']})"
-        report += f"\n  判定理由: {reason}\n"
-        report += f"  内容: {news.get('text', '')[:100]}...\n"
-    
-    return report
+    return report + details
 
 
 def _generate_scenarios(total_score: float, gap: float, alerts: List, zero_count: int, news_count: int) -> List[str]:
     """シナリオを生成（2-3つ）"""
     scenarios = []
     
-    # 評価保留が多い場合
     if news_count > 0 and zero_count / news_count > 0.5:
-        scenarios.append("明確な方向性が出るまでレンジ推移となる可能性")
+        scenarios.append("明確な材料が出るまでレンジ推移となる可能性")
         scenarios.append("新たな材料をきっかけに方向感が出る可能性")
-    # ベースシナリオ
     elif total_score >= 3:
         scenarios.append("好材料が継続し、短期的に堅調な展開が続く可能性")
         scenarios.append("利益確定売りが出やすく、調整を挟む可能性")
@@ -171,11 +206,10 @@ def _generate_scenarios(total_score: float, gap: float, alerts: List, zero_count
         scenarios.append("材料待ちでレンジ推移となる可能性")
         scenarios.append("新たな材料をきっかけに方向感が出る可能性")
     
-    # 乖離シナリオ
     if abs(gap) >= 3:
         if gap > 0:
             scenarios.append("海外市場の改善を受け、国内が追随して上昇する可能性")
         else:
             scenarios.append("海外市場の悪化を織り込み、国内が調整する可能性")
     
-    return scenarios[:3]  # 最大3つ
+    return scenarios[:3]
