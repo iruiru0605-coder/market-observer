@@ -316,11 +316,16 @@ def _group_political_events(events):
         
         context = event_dict.get("context", "その他")
         grouped[speaker]["themes"][context] = grouped[speaker]["themes"].get(context, 0) + 1
-        # summary と url をペアで保存
+        
+        # summary と url をペアで保存（詳細情報付き）
         grouped[speaker]["items"].append({
             "summary": event_dict.get("summary", ""),
+            "title": event_dict.get("title", ""),
+            "description": event_dict.get("original_text", ""), # 冒頭テキスト
             "url": event_dict.get("url"),
             "source_name": event_dict.get("source_name", ""),
+            "score": event_dict.get("impact_score", 0),
+            "reason": event_dict.get("score_reason", ""),
         })
         grouped[speaker]["sources"].append(event_dict.get("source_name", ""))
     

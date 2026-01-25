@@ -24,17 +24,25 @@ class PoliticalEvent:
     url: str = None  # 記事URL
     published_at: datetime = None
     
+    # 評価情報
+    impact_score: float = 0
+    score_reason: str = ""
+    title: str = ""
+    
     def to_dict(self) -> dict:
         return {
             "speaker": self.speaker,
             "summary": self.summary,
             "context": self.context,
             "source_name": self.source_name,
-            "original_text": self.original_text[:200],
+            "original_text": self.original_text,
             "detected_keywords": self.detected_keywords,
             "url": self.url,
             "evaluation": "未評価（方向性保留）",
             "position": "市場変動の引き金になり得る事象",
+            "impact_score": self.impact_score,
+            "score_reason": self.score_reason,
+            "title": self.title,
         }
 
 
@@ -148,14 +156,26 @@ class PoliticalEventDetector:
             # 要旨の生成（具体化）
             summary = self._generate_summary(context, detected_keywords, text)
             
+            # 記事タイトルと本文（冒頭）を取得
+            title = news.get("title", "")
+            if not title:
+                title = news.get("text", "")[:60]
+            
+            description = news.get("description", "")
+            if not description:
+                description = news.get("text", "")[:200]
+            
             event = PoliticalEvent(
                 speaker=speaker,
                 summary=summary,
                 context=context or "その他",
                 source_name=source,
-                original_text=news.get("text", ""),
+                original_text=description,  # 冒頭テキストを保持
                 detected_keywords=detected_keywords,
                 url=news.get("url"),
+                impact_score=news.get("impact_score", 0),
+                score_reason=news.get("score_reason", ""),
+                title=title,
             )
             events.append(event)
         

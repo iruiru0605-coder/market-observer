@@ -596,19 +596,148 @@ body {
     font-size: 0.75rem;
 }
 
-.political-item .summaries {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
+/* 政治発言 */
+.political-section {
+    background: linear-gradient(135deg, var(--bg-secondary), rgba(255, 107, 53, 0.03));
 }
 
-.political-item .summaries p {
-    margin-bottom: 4px;
+.political-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
 }
 
-.political-item .source-link {
-    color: var(--accent-blue);
-    text-decoration: none;
+@media (max-width: 768px) {
+    .political-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+.political-item {
+    background: var(--bg-card);
+    padding: 18px;
+    border-radius: var(--radius-sm);
+    border-left: 4px solid var(--accent-orange);
+    box-shadow: var(--shadow-sm);
+    height: 100%;
+    /* 高さを揃える */
+}
+
+.political-item .speaker {
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+}
+
+.political-item .themes {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+}
+
+.political-item .theme-tag {
+    background: rgba(255, 107, 53, 0.1);
+    color: var(--accent-orange);
+    padding: 3px 10px;
+    border-radius: 12px;
     font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.political-articles {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.political-article {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    transition: background 0.2s;
+}
+
+.political-article:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.political-article .article-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.political-article .article-score {
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 2px 8px;
+    border-radius: 6px;
+    min-width: 35px;
+    text-align: center;
+}
+
+.political-article .article-score.positive {
+    background: rgba(0, 208, 132, 0.2);
+    color: var(--accent-green);
+}
+
+.political-article .article-score.negative {
+    background: rgba(255, 71, 87, 0.2);
+    color: var(--accent-red);
+}
+
+.political-article .article-score.neutral {
+    background: rgba(136, 153, 166, 0.2);
+    color: var(--text-secondary);
+}
+
+.political-article .article-title {
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    flex: 1;
+}
+
+.political-article .article-title:hover {
+    color: #4db5f9;
+    /* 明るめの青に調整 */
+    text-decoration: underline;
+}
+
+.political-article .article-summary {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 8px;
+    padding-left: 45px;
+    /* スコア分のインデント */
+}
+
+.political-article .article-meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    padding-left: 45px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.political-article .meta-source {
+    color: #4db5f9;
+    /* 視認性を改善（明るい青） */
+    font-weight: 500;
+}
+
+.political-article .meta-note {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
 }
 
 /* ======================== */

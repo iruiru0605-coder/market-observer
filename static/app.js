@@ -267,6 +267,7 @@ function renderTriggers(triggers) {
 }
 
 // 政治発言描画
+// 政治発言描画（詳細表示）
 function renderPoliticalEvents(events) {
     const container = document.getElementById('political-list');
     const section = document.getElementById('political-section');
@@ -283,11 +284,27 @@ function renderPoliticalEvents(events) {
             <div class="themes">
                 ${e.themes.map(t => `<span class="theme-tag">${t.name}（${t.count}件）</span>`).join('')}
             </div>
-            <div class="summaries">
+            <div class="political-articles">
                 ${(e.items || []).map(item => {
         const url = item.url || '#';
         const sourceName = item.source_name || '';
-        return `<p>・${item.summary} <a href="${url}" target="_blank" class="source-link">[${sourceName}]</a></p>`;
+        const title = item.title || item.summary || 'タイトルなし';
+        const description = item.description || ''
+        const score = item.score || 0;
+        const scoreClass = score > 0 ? 'positive' : (score < 0 ? 'negative' : 'neutral');
+
+        return `
+                    <div class="political-article">
+                        <div class="article-header">
+                            <span class="article-score ${scoreClass}">${score >= 0 ? '+' : ''}${score}</span>
+                            <a href="${url}" target="_blank" class="article-title">${title}</a>
+                        </div>
+                        <p class="article-summary">${description}</p>
+                        <div class="article-meta">
+                            <span class="meta-source">[${sourceName}]</span>
+                            <span class="meta-note">${item.summary}</span>
+                        </div>
+                    </div>`;
     }).join('')}
             </div>
         </div>
