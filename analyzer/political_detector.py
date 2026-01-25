@@ -21,6 +21,7 @@ class PoliticalEvent:
     source_name: str
     original_text: str
     detected_keywords: List[str]
+    url: str = None  # 記事URL
     published_at: datetime = None
     
     def to_dict(self) -> dict:
@@ -31,6 +32,7 @@ class PoliticalEvent:
             "source_name": self.source_name,
             "original_text": self.original_text[:200],
             "detected_keywords": self.detected_keywords,
+            "url": self.url,
             "evaluation": "未評価（方向性保留）",
             "position": "市場変動の引き金になり得る事象",
         }
@@ -153,6 +155,7 @@ class PoliticalEventDetector:
                 source_name=source,
                 original_text=news.get("text", ""),
                 detected_keywords=detected_keywords,
+                url=news.get("url"),
             )
             events.append(event)
         

@@ -50,9 +50,9 @@ def generate_dashboard_data():
     scored = score_news_batch(classified)
     aggregates = calculate_aggregate_scores(scored)
     alerts = detector.detect_alerts(aggregates)
-    political_events = detect_political_events(news_list)
-    macro_observation = observe_macro(news_list)
-    priority_macro = detect_priority_macro(news_list)
+    political_events = detect_political_events(scored)
+    macro_observation = observe_macro(scored)
+    priority_macro = detect_priority_macro(scored)
     
     # 統計情報
     news_count = aggregates.get("news_count", 0)
@@ -111,12 +111,21 @@ def generate_dashboard_data():
     # 政治発言グループ化
     grouped_political = _group_political_events(political_events)
     
-    # 評価保留理由の集計
+    # 評価保留理由の集計（記事詳細を含める）
     zero_reasons = {}
     for n in scored:
         if n.get("impact_score", 0) == 0:
             reason = n.get("score_reason", "不明")
-            zero_reasons[reason] = zero_reasons.get(reason, 0) + 1
+            if reason not in zero_reasons:
+                zero_reasons[reason] = {"count": 0, "articles": []}
+            zero_reasons[reason]["count"] += 1
+            # 最大5件まで記事を保存
+            if len(zero_reasons[reason]["articles"]) < 5:
+                zero_reasons[reason]["articles"].append({
+                    "title": n.get("title", n.get("text", "")[:60]),
+                    "url": n.get("url"),
+                    "source_name": n.get("source_name", ""),
+                })
     
     # ニュースをスコア別に分類
     positive_news = [n for n in scored if n.get("impact_score", 0) > 0]
@@ -139,12 +148,12 @@ def generate_dashboard_data():
         "one_liner": one_liner,
         "has_priority": has_priority,
         "priority_macro": {
-            "fed": {"count": len(priority_macro.fed_news) if priority_macro else 0, "has": priority_macro.has_fed if priority_macro else False},
-            "treasury": {"count": len(priority_macro.treasury_news) if priority_macro else 0, "has": priority_macro.has_treasury if priority_macro else False},
-            "usdjpy": {"count": len(priority_macro.usdjpy_news) if priority_macro else 0, "has": priority_macro.has_usdjpy if priority_macro else False},
-            "employment": {"count": len(priority_macro.employment_news) if priority_macro else 0, "has": priority_macro.has_employment if priority_macro else False},
-            "inflation": {"count": len(priority_macro.inflation_news) if priority_macro else 0, "has": priority_macro.has_inflation if priority_macro else False},
-            "ism": {"count": len(priority_macro.ism_news) if priority_macro else 0, "has": priority_macro.has_ism if priority_macro else False},
+            "fed": _format_priority_news(priority_macro.fed_news if priority_macro else []),
+            "treasury": _format_priority_news(priority_macro.treasury_news if priority_macro else []),
+            "usdjpy": _format_priority_news(priority_macro.usdjpy_news if priority_macro else []),
+            "employment": _format_priority_news(priority_macro.employment_news if priority_macro else []),
+            "inflation": _format_priority_news(priority_macro.inflation_news if priority_macro else []),
+            "ism": _format_priority_news(priority_macro.ism_news if priority_macro else []),
         },
         "history": history_comparison if history_comparison.get("has_history") else None,
         "triggers": [{"id": t.id, "name": t.name, "message": t.message} for t in triggers],
@@ -186,6 +195,25 @@ def _generate_one_liner(total: float, zero_ratio: float, priority_macro) -> str:
             return "特に大きな動きがない日です。"
 
 
+def _format_priority_news(news_list):
+    """priority_macro用のニュース整形"""
+    if not news_list:
+        return {"count": 0, "has": False, "articles": []}
+    
+    articles = []
+    for n in news_list[:5]:  # 最大5件
+        articles.append({
+            "title": n.get("title", n.get("text", "")[:60]),
+            "url": n.get("url"),
+            "source_name": n.get("source_name", ""),
+        })
+    
+    return {
+        "count": len(news_list),
+        "has": len(news_list) > 0,
+        "articles": articles,
+    }
+
 def _group_political_events(events):
     """政治発言を発言者ごとにグループ化"""
     if not events:
@@ -201,22 +229,35 @@ def _group_political_events(events):
             grouped[speaker] = {
                 "speaker": speaker,
                 "themes": {},
-                "summaries": [],
+                "items": [],  # summary + URL のペアリスト
                 "sources": [],
             }
         
         context = event_dict.get("context", "その他")
         grouped[speaker]["themes"][context] = grouped[speaker]["themes"].get(context, 0) + 1
-        grouped[speaker]["summaries"].append(event_dict.get("summary", ""))
+        # summary と url をペアで保存
+        grouped[speaker]["items"].append({
+            "summary": event_dict.get("summary", ""),
+            "url": event_dict.get("url"),
+            "source_name": event_dict.get("source_name", ""),
+        })
         grouped[speaker]["sources"].append(event_dict.get("source_name", ""))
     
     # リスト形式に変換
     result = []
     for speaker, data in grouped.items():
+        # 重複を削除しつつURLを保持
+        seen_summaries = set()
+        unique_items = []
+        for item in data["items"]:
+            if item["summary"] not in seen_summaries:
+                seen_summaries.add(item["summary"])
+                unique_items.append(item)
+        
         result.append({
             "speaker": speaker,
             "themes": [{"name": k, "count": v} for k, v in data["themes"].items()],
-            "summaries": list(set(data["summaries"]))[:3],
+            "items": unique_items[:5],  # 最大5件
             "sources": list(set(data["sources"]))[:3],
         })
     

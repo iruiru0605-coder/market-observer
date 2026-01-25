@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Market Observer - Dashboard</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
+
 <body>
     <div class="container">
         <!-- ヘッダー -->
@@ -28,7 +30,7 @@
 
         <!-- メインコンテンツ -->
         <main id="main-content" class="hidden">
-            
+
             <!-- サマリー -->
             <section class="section summary-section">
                 <h2>サマリー</h2>
@@ -64,51 +66,63 @@
             <section class="section priority-section">
                 <h2>🔴 本日の判断に影響しやすい要素</h2>
                 <p class="section-note">これらの情報は、市場全体の方向性に関わる重要な材料です</p>
-                
+
                 <div class="priority-grid">
                     <div class="priority-category">
                         <h3>金利関連</h3>
                         <div class="priority-item" id="priority-fed">
-                            <span class="indicator"></span>
-                            <span class="name">FRB関連</span>
-                            <span class="status">-</span>
+                            <div class="priority-item-header">
+                                <span class="indicator"></span>
+                                <span class="name">FRB関連</span>
+                                <span class="status">-</span>
+                            </div>
                         </div>
                         <div class="priority-item" id="priority-treasury">
-                            <span class="indicator"></span>
-                            <span class="name">米国債利回り</span>
-                            <span class="status">-</span>
+                            <div class="priority-item-header">
+                                <span class="indicator"></span>
+                                <span class="name">米国債利回り</span>
+                                <span class="status">-</span>
+                            </div>
                         </div>
                     </div>
-                    
+
                     <div class="priority-category">
                         <h3>為替関連</h3>
                         <div class="priority-item" id="priority-usdjpy">
-                            <span class="indicator"></span>
-                            <span class="name">ドル円</span>
-                            <span class="status">-</span>
+                            <div class="priority-item-header">
+                                <span class="indicator"></span>
+                                <span class="name">ドル円</span>
+                                <span class="status">-</span>
+                            </div>
                         </div>
                     </div>
-                    
+
                     <div class="priority-category">
                         <h3>主要経済指標</h3>
                         <div class="priority-item" id="priority-employment">
-                            <span class="indicator"></span>
-                            <span class="name">雇用統計</span>
-                            <span class="status">-</span>
+                            <div class="priority-item-header">
+                                <span class="indicator"></span>
+                                <span class="name">雇用統計</span>
+                                <span class="status">-</span>
+                            </div>
                         </div>
                         <div class="priority-item" id="priority-inflation">
-                            <span class="indicator"></span>
-                            <span class="name">物価指標</span>
-                            <span class="status">-</span>
+                            <div class="priority-item-header">
+                                <span class="indicator"></span>
+                                <span class="name">物価指標</span>
+                                <span class="status">-</span>
+                            </div>
                         </div>
                         <div class="priority-item" id="priority-ism">
-                            <span class="indicator"></span>
-                            <span class="name">景況感（ISM等）</span>
-                            <span class="status">-</span>
+                            <div class="priority-item-header">
+                                <span class="indicator"></span>
+                                <span class="name">景況感（ISM等）</span>
+                                <span class="status">-</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="judgement-summary" id="judgement-summary">
                     <span class="icon">📍</span>
                     <span class="text">判断のしやすさ: 読み込み中...</span>
@@ -153,13 +167,13 @@
             <!-- ニュース一覧 -->
             <section class="section news-section">
                 <h2>📰 ニュース一覧</h2>
-                
+
                 <div class="news-tabs">
                     <button class="tab-btn active" data-tab="positive">+スコア</button>
                     <button class="tab-btn" data-tab="negative">-スコア</button>
                     <button class="tab-btn" data-tab="neutral">評価保留</button>
                 </div>
-                
+
                 <div class="news-tab-content" id="positive-news">
                     <!-- 動的に生成 -->
                 </div>
@@ -189,4 +203,5 @@
 
     <script src="/static/app.js"></script>
 </body>
+
 </html>

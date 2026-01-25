@@ -20,6 +20,8 @@ class NewsAPIClient:
         "stock market", "economy", "Federal Reserve", "inflation",
         "interest rate", "GDP", "earnings", "S&P 500", "Dow Jones",
         "NASDAQ", "bond", "treasury", "recession", "employment",
+        # 為替関連
+        "dollar yen", "yen", "forex", "currency intervention", "rate check",
     ]
     
     def __init__(self, api_key: Optional[str] = None):
@@ -159,16 +161,62 @@ class NewsAPIClient:
 def fetch_news(api_key: Optional[str] = None) -> NewsFetchResult:
     """
     ニュースを取得（簡易関数）
+    NewsAPI + Google News を併用
     
     Returns:
         NewsFetchResult
     """
+    all_news = []
+    existing_urls = set()
+    
+    # 1. NewsAPI ビジネストップヘッドライン
     try:
         client = NewsAPIClient(api_key)
-        return client.fetch_top_headlines(country="us", category="business")
-    except ValueError as e:
+        headlines = client.fetch_top_headlines(country="us", category="business")
+        for news in headlines.news_list:
+            if news.url and news.url not in existing_urls:
+                all_news.append(news)
+                existing_urls.add(news.url)
+    except Exception:
+        pass  # NewsAPIが失敗してもGoogle Newsで続行
+    
+    # 2. Google News 為替関連検索（追加ソース）
+    try:
+        from .googlenews_client import GoogleNewsClient
+        google_client = GoogleNewsClient()
+        forex_result = google_client.fetch_forex_news()
+        
+        if forex_result.success:
+            for news in forex_result.news_list:
+                if news.url and news.url not in existing_urls:
+                    all_news.append(news)
+                    existing_urls.add(news.url)
+    except Exception:
+        pass  # Google Newsが失敗してもNewsAPIの結果は返す
+    
+    # 3. Google News ビジネストップ（追加ソース）
+    try:
+        from .googlenews_client import GoogleNewsClient
+        google_client = GoogleNewsClient()
+        google_top = google_client.fetch_top_stories("BUSINESS")
+        
+        if google_top.success:
+            for news in google_top.news_list:
+                if news.url and news.url not in existing_urls:
+                    all_news.append(news)
+                    existing_urls.add(news.url)
+    except Exception:
+        pass
+    
+    if not all_news:
         return NewsFetchResult(
             success=False,
-            error_message=str(e),
-            source_api="NewsAPI",
+            error_message="No news could be fetched from any source",
+            source_api="NewsAPI + Google News",
         )
+    
+    return NewsFetchResult(
+        success=True,
+        news_list=all_news,
+        source_api="NewsAPI + Google News",
+    )

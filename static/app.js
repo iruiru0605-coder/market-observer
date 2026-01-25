@@ -103,9 +103,32 @@ function renderDashboard(data) {
 // 優先度アイテム描画
 function renderPriorityItem(id, item) {
     const el = document.getElementById(id);
+
+    // 既存の記事リストを削除
+    const existingList = el.querySelector('.priority-articles');
+    if (existingList) {
+        existingList.remove();
+    }
+
     if (item.has) {
         el.classList.add('has');
         el.querySelector('.status').textContent = item.count + '件あり';
+
+        // 記事リストを追加
+        if (item.articles && item.articles.length > 0) {
+            const articleList = document.createElement('div');
+            articleList.className = 'priority-articles';
+            articleList.innerHTML = item.articles.map(article => {
+                const url = article.url || '#';
+                const title = article.title || '(タイトルなし)';
+                const source = article.source_name || '';
+                return `<div class="priority-article">
+                    <a href="${url}" target="_blank" rel="noopener noreferrer">${title}</a>
+                    <span class="article-source">${source}</span>
+                </div>`;
+            }).join('');
+            el.appendChild(articleList);
+        }
     } else {
         el.classList.remove('has');
         el.querySelector('.status').textContent = '該当なし';
@@ -184,13 +207,26 @@ function renderZeroReasons(reasons) {
         return;
     }
 
-    // ソート
-    const sorted = Object.entries(reasons).sort((a, b) => b[1] - a[1]);
+    // ソート（件数順）
+    const sorted = Object.entries(reasons).sort((a, b) => b[1].count - a[1].count);
 
-    container.innerHTML = sorted.map(([reason, count]) => `
+    container.innerHTML = sorted.map(([reason, data]) => `
         <div class="zero-reason-item">
-            <span class="reason">${reason}</span>
-            <span class="count">${count}件</span>
+            <div class="reason-header">
+                <span class="reason">${reason}</span>
+                <span class="count">${data.count}件</span>
+            </div>
+            <div class="reason-articles">
+                ${data.articles.map(article => {
+        const url = article.url || '#';
+        const title = article.title || '(タイトルなし)';
+        const source = article.source_name || '';
+        return `<div class="reason-article">
+                        <a href="${url}" target="_blank" rel="noopener noreferrer">${title}</a>
+                        <span class="article-source">${source}</span>
+                    </div>`;
+    }).join('')}
+            </div>
         </div>
     `).join('');
 }
@@ -211,7 +247,11 @@ function renderPoliticalEvents(events) {
                 ${e.themes.map(t => `<span class="theme-tag">${t.name}（${t.count}件）</span>`).join('')}
             </div>
             <div class="summaries">
-                ${e.summaries.map(s => `<p>・${s}</p>`).join('')}
+                ${(e.items || []).map(item => {
+        const url = item.url || '#';
+        const sourceName = item.source_name || '';
+        return `<p>・${item.summary} <a href="${url}" target="_blank" rel="noopener noreferrer" class="source-link">[${sourceName}]</a></p>`;
+    }).join('')}
             </div>
         </div>
     `).join('');

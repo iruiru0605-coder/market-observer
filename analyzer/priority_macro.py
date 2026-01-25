@@ -80,10 +80,15 @@ class PriorityMacroDetector:
         "bond yield", "米国債", "利回り", "長期金利",
     ]
     
-    # USD/JPYキーワード
+    # USD/JPYキーワード（為替介入・レートチェック含む）
     USDJPY_KEYWORDS = [
         "usd/jpy", "dollar yen", "ドル円", "円安", "円高",
-        "yen", "円",
+        "yen", "円", "usdjpy",
+        # 為替介入関連
+        "rate check", "レートチェック", "forex intervention", "為替介入",
+        "intervention", "介入警戒", "口先介入", "verbal intervention",
+        "boj intervention", "日銀介入", "mof intervention", "財務省介入",
+        "kanda", "神田財務官", "三者会合",
     ]
     
     # DXYキーワード
