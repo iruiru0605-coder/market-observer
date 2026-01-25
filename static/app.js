@@ -257,7 +257,7 @@ function renderPoliticalEvents(events) {
     `).join('');
 }
 
-// ニュース描画
+// ニュース描画（詳細評価付き）
 function renderNews(containerId, news, type) {
     const container = document.getElementById(containerId);
 
@@ -273,6 +273,19 @@ function renderNews(containerId, news, type) {
         const url = n.url || '#';
         const title = n.title || (n.text || '').substring(0, 80);
 
+        // 詳細評価情報
+        const confidence = n.confidence || 0;
+        const confidenceStars = '★'.repeat(confidence) + '☆'.repeat(5 - confidence);
+        const timeHorizon = n.time_horizon || 'medium';
+        const timeLabel = { short: '短期', medium: '中期', long: '長期' }[timeHorizon] || '中期';
+
+        // 要因リスト
+        const positiveFactors = (n.positive_factors || []).slice(0, 3);
+        const negativeFactors = (n.negative_factors || []).slice(0, 3);
+        const uncertaintyFactors = (n.uncertainty_factors || []).slice(0, 2);
+
+        const hasFactors = positiveFactors.length > 0 || negativeFactors.length > 0 || uncertaintyFactors.length > 0;
+
         return `
             <div class="news-item">
                 <div class="header">
@@ -283,7 +296,20 @@ function renderNews(containerId, news, type) {
                     <a href="${url}" target="_blank" rel="noopener noreferrer">${title}</a>
                 </div>
                 <div class="category">${n.category_name || ''} ${n.sub_category ? '(' + n.sub_category + ')' : ''}</div>
-                <div class="reason">判定理由: ${n.score_reason || '-'}</div>
+                <div class="evaluation-details">
+                    <div class="eval-meta">
+                        <span class="confidence" title="確信度">確信度: ${confidenceStars}</span>
+                        <span class="time-horizon" title="影響の時間軸">時間軸: ${timeLabel}</span>
+                    </div>
+                    <div class="reason"><strong>判定理由:</strong> ${n.score_reason || '-'}</div>
+                    ${hasFactors ? `
+                    <div class="factors">
+                        ${positiveFactors.length > 0 ? `<div class="factor-group positive-factors"><span class="factor-label">📈 プラス要因:</span> ${positiveFactors.join(' / ')}</div>` : ''}
+                        ${negativeFactors.length > 0 ? `<div class="factor-group negative-factors"><span class="factor-label">📉 マイナス要因:</span> ${negativeFactors.join(' / ')}</div>` : ''}
+                        ${uncertaintyFactors.length > 0 ? `<div class="factor-group uncertainty-factors"><span class="factor-label">⚠️ 不確実要因:</span> ${uncertaintyFactors.join(' / ')}</div>` : ''}
+                    </div>
+                    ` : ''}
+                </div>
                 <div class="text">${(n.description || n.text || '').substring(0, 150)}...</div>
             </div>
         `;

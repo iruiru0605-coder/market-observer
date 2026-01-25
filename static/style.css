@@ -619,3 +619,64 @@ body {
     color: white;
     cursor: pointer;
 }
+
+/* 評価詳細セクション */
+.evaluation-details {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin: 8px 0;
+}
+
+.eval-meta {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+}
+
+.eval-meta .confidence {
+    color: var(--accent-yellow);
+}
+
+.eval-meta .time-horizon {
+    color: var(--accent-blue);
+}
+
+.evaluation-details .reason {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.evaluation-details .reason strong {
+    color: var(--text-secondary);
+}
+
+.factors {
+    margin-top: 8px;
+    font-size: 0.85rem;
+}
+
+.factor-group {
+    padding: 4px 0;
+    line-height: 1.4;
+}
+
+.factor-label {
+    font-weight: 500;
+    margin-right: 5px;
+}
+
+.positive-factors {
+    color: var(--accent-green);
+}
+
+.negative-factors {
+    color: var(--accent-red);
+}
+
+.uncertainty-factors {
+    color: var(--accent-yellow);
+}

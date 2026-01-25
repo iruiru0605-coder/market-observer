@@ -7,9 +7,10 @@ Flask サーバーで以下を提供:
 - /api/report : レポートデータJSON
 - /api/refresh : ニュース再取得
 """
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 from datetime import datetime
 import json
+import os
 
 from analyzer import (
     classify_news_batch, 
@@ -23,6 +24,17 @@ from analyzer import (
 from alert import AlertDetector
 from fetcher import fetch_news
 from data import get_history_manager
+
+# LLM分類器（利用可能な場合）
+try:
+    from analyzer.llm_classifier import GeminiClassifier, classify_with_llm
+    LLM_AVAILABLE = True
+except ImportError:
+    LLM_AVAILABLE = False
+
+# LLM分類を使用するかどうか（環境変数で制御）
+USE_LLM = os.getenv("USE_LLM", "true").lower() == "true" and LLM_AVAILABLE
+
 
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
@@ -44,10 +56,33 @@ def generate_dashboard_data():
     # DTOを分析用形式に変換
     news_list = [dto.to_dict() for dto in result.news_list]
     
-    # 分析
+    # 分析（ハイブリッド方式：LLM + キーワード）
     detector = AlertDetector()
-    classified = classify_news_batch(news_list)
-    scored = score_news_batch(classified)
+    
+    if USE_LLM and len(news_list) > 0:
+        # ハイブリッド方式: 上位50件のみLLM、残りはキーワードベース
+        LLM_LIMIT = 50
+        
+        if len(news_list) <= LLM_LIMIT:
+            # 全件LLM処理
+            scored = classify_with_llm(news_list)
+        else:
+            # 上位はLLM、残りはキーワード
+            llm_batch = news_list[:LLM_LIMIT]
+            keyword_batch = news_list[LLM_LIMIT:]
+            
+            llm_scored = classify_with_llm(llm_batch)
+            keyword_classified = classify_news_batch(keyword_batch)
+            keyword_scored = score_news_batch(keyword_classified)
+            
+            scored = llm_scored + keyword_scored
+        
+        classified = scored  # LLMは分類済み
+    else:
+        # 従来のキーワードベース分類
+        classified = classify_news_batch(news_list)
+        scored = score_news_batch(classified)
+    
     aggregates = calculate_aggregate_scores(scored)
     alerts = detector.detect_alerts(aggregates)
     political_events = detect_political_events(scored)
