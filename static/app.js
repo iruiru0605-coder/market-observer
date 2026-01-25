@@ -1,10 +1,22 @@
-/* Market Observer Dashboard - JavaScript */
+/* Market Observer Dashboard - Professional Layout JavaScript */
 
 // DOM読み込み完了後に実行
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
     setupTabs();
 });
+
+// 更新ボタンクリック時
+async function refreshData() {
+    const btn = document.getElementById('refresh-btn');
+    btn.disabled = true;
+    btn.textContent = '⏳ 更新中...';
+
+    await loadData();
+
+    btn.disabled = false;
+    btn.textContent = '🔄 更新';
+}
 
 // データ取得
 async function loadData() {
@@ -38,101 +50,157 @@ async function loadData() {
 
 // ダッシュボード描画
 function renderDashboard(data) {
-    // タイムスタンプ
-    document.getElementById('timestamp').textContent = `更新: ${data.timestamp}`;
+    // ヒーローセクション
+    renderHeroSection(data);
 
-    // サマリー
-    const totalScore = data.summary.total_score;
-    const scoreCard = document.getElementById('total-score-card');
-    const scoreEl = document.getElementById('total-score');
-
-    scoreEl.textContent = (totalScore >= 0 ? '+' : '') + totalScore.toFixed(1);
-
-    if (totalScore >= 2) {
-        scoreCard.className = 'summary-card score-card positive';
-    } else if (totalScore <= -2) {
-        scoreCard.className = 'summary-card score-card negative';
-    } else {
-        scoreCard.className = 'summary-card score-card neutral';
-    }
-
-    document.getElementById('domestic-foreign').textContent =
-        `${data.summary.domestic_score >= 0 ? '+' : ''}${data.summary.domestic_score.toFixed(1)} / ${data.summary.foreign_score >= 0 ? '+' : ''}${data.summary.foreign_score.toFixed(1)}`;
-    document.getElementById('news-count').textContent = data.summary.news_count + '件';
-    document.getElementById('zero-ratio').textContent = data.summary.zero_ratio + '%';
-
-    // 今日の一言まとめ
-    document.querySelector('.one-liner .text').textContent = data.one_liner;
-
-    // 優先度マクロ
-    renderPriorityItem('priority-fed', data.priority_macro.fed);
-    renderPriorityItem('priority-treasury', data.priority_macro.treasury);
-    renderPriorityItem('priority-usdjpy', data.priority_macro.usdjpy);
-    renderPriorityItem('priority-employment', data.priority_macro.employment);
-    renderPriorityItem('priority-inflation', data.priority_macro.inflation);
-    renderPriorityItem('priority-ism', data.priority_macro.ism);
+    // 優先度カード
+    renderPriorityCard('priority-fed', data.priority_macro.fed);
+    renderPriorityCard('priority-treasury', data.priority_macro.treasury);
+    renderPriorityCard('priority-usdjpy', data.priority_macro.usdjpy);
+    renderPriorityCard('priority-employment', data.priority_macro.employment);
+    renderPriorityCard('priority-inflation', data.priority_macro.inflation);
+    renderPriorityCard('priority-ism', data.priority_macro.ism);
 
     // 判断しやすさ
     const judgementText = data.has_priority
         ? '判断材料が出ている日です。上記の情報を確認してください。'
         : '判断の土台となる情報が少ない日です。様子見が妥当かもしれません。';
-    document.querySelector('#judgement-summary .text').textContent = '判断のしやすさ: ' + judgementText;
+    document.querySelector('#judgement-summary .judgement-text').textContent = '📍 ' + judgementText;
+
+    // 注目ニュース
+    renderHighlightNews(data.news);
 
     // 履歴
     if (data.history) {
         renderHistory(data.history, data.summary);
-    } else {
-        document.getElementById('history-section').classList.add('hidden');
     }
 
     // トリガー
     renderTriggers(data.triggers);
 
-    // 評価保留理由
-    renderZeroReasons(data.zero_reasons);
-
     // 政治発言
     renderPoliticalEvents(data.political_events);
 
-    // ニュース
+    // ニュース一覧
     renderNews('positive-news', data.news.positive, 'positive');
     renderNews('negative-news', data.news.negative, 'negative');
     renderNews('neutral-news', data.news.neutral, 'neutral');
 }
 
-// 優先度アイテム描画
-function renderPriorityItem(id, item) {
-    const el = document.getElementById(id);
+// ヒーローセクション描画
+function renderHeroSection(data) {
+    // タイムスタンプ
+    document.getElementById('timestamp').textContent = data.timestamp;
 
-    // 既存の記事リストを削除
-    const existingList = el.querySelector('.priority-articles');
-    if (existingList) {
-        existingList.remove();
+    // 総合スコア
+    const totalScore = data.summary.total_score;
+    const scoreEl = document.getElementById('total-score');
+    scoreEl.textContent = (totalScore >= 0 ? '+' : '') + totalScore.toFixed(1);
+
+    if (totalScore >= 2) {
+        scoreEl.className = 'score-value positive';
+    } else if (totalScore <= -2) {
+        scoreEl.className = 'score-value negative';
+    } else {
+        scoreEl.className = 'score-value neutral';
     }
+
+    // センチメントバッジ
+    const badge = document.getElementById('sentiment-badge');
+    if (totalScore >= 3) {
+        badge.textContent = '強気';
+        badge.className = 'sentiment-badge positive';
+    } else if (totalScore >= 1) {
+        badge.textContent = 'やや強気';
+        badge.className = 'sentiment-badge positive';
+    } else if (totalScore <= -3) {
+        badge.textContent = '弱気';
+        badge.className = 'sentiment-badge negative';
+    } else if (totalScore <= -1) {
+        badge.textContent = 'やや弱気';
+        badge.className = 'sentiment-badge negative';
+    } else {
+        badge.textContent = '中立';
+        badge.className = 'sentiment-badge neutral';
+    }
+
+    // 今日の一言
+    document.querySelector('#one-liner .one-liner-text').textContent = data.one_liner;
+
+    // 統計
+    document.getElementById('news-count').textContent = data.summary.news_count + '件';
+    document.getElementById('domestic-foreign').textContent =
+        `${data.summary.domestic_score >= 0 ? '+' : ''}${data.summary.domestic_score.toFixed(1)} / ${data.summary.foreign_score >= 0 ? '+' : ''}${data.summary.foreign_score.toFixed(1)}`;
+    document.getElementById('zero-ratio').textContent = data.summary.zero_ratio + '%';
+}
+
+// 優先度カード描画
+function renderPriorityCard(id, item) {
+    const el = document.getElementById(id);
+    const statusEl = el.querySelector('.card-status');
+    const summaryEl = el.querySelector('.card-summary');
+    const articlesEl = el.querySelector('.card-articles');
 
     if (item.has) {
         el.classList.add('has');
-        el.querySelector('.status').textContent = item.count + '件あり';
+        const avgScore = item.avg_score || 0;
+        statusEl.innerHTML = `${item.count}件 <span style="color: ${avgScore > 0 ? 'var(--accent-green)' : (avgScore < 0 ? 'var(--accent-red)' : 'var(--text-secondary)')}">(${avgScore >= 0 ? '+' : ''}${avgScore})</span>`;
 
-        // 記事リストを追加
+        if (item.summary) {
+            summaryEl.textContent = item.summary;
+        }
+
         if (item.articles && item.articles.length > 0) {
-            const articleList = document.createElement('div');
-            articleList.className = 'priority-articles';
-            articleList.innerHTML = item.articles.map(article => {
-                const url = article.url || '#';
-                const title = article.title || '(タイトルなし)';
-                const source = article.source_name || '';
-                return `<div class="priority-article">
-                    <a href="${url}" target="_blank" rel="noopener noreferrer">${title}</a>
-                    <span class="article-source">${source}</span>
+            articlesEl.innerHTML = item.articles.map(article => {
+                const score = article.score || 0;
+                const scoreClass = score > 0 ? 'positive' : (score < 0 ? 'negative' : '');
+                return `<div class="card-article">
+                    <span class="article-score ${scoreClass}">${score >= 0 ? '+' : ''}${score}</span>
+                    <a href="${article.url || '#'}" target="_blank">${article.title || '(タイトルなし)'}</a>
                 </div>`;
             }).join('');
-            el.appendChild(articleList);
         }
     } else {
         el.classList.remove('has');
-        el.querySelector('.status').textContent = '該当なし';
+        statusEl.textContent = '該当なし';
+        summaryEl.textContent = '';
+        articlesEl.innerHTML = '';
     }
+}
+
+// 注目ニュース（高スコア）描画
+function renderHighlightNews(news) {
+    const container = document.getElementById('highlight-grid');
+    const section = document.getElementById('highlight-section');
+
+    // +3以上/-3以下のニュースを抽出
+    const highlights = [
+        ...news.positive.filter(n => Math.abs(n.impact_score) >= 3),
+        ...news.negative.filter(n => Math.abs(n.impact_score) >= 3)
+    ].sort((a, b) => Math.abs(b.impact_score) - Math.abs(a.impact_score)).slice(0, 6);
+
+    if (highlights.length === 0) {
+        section.classList.add('hidden');
+        return;
+    }
+
+    section.classList.remove('hidden');
+    container.innerHTML = highlights.map(n => {
+        const score = n.impact_score || 0;
+        const type = score > 0 ? 'positive' : 'negative';
+        return `
+            <div class="highlight-item ${type}">
+                <div class="item-header">
+                    <span class="item-source">${n.source_name || n.source || 'Unknown'}</span>
+                    <span class="item-score ${type}">${score >= 0 ? '+' : ''}${score}</span>
+                </div>
+                <div class="item-title">
+                    <a href="${n.url || '#'}" target="_blank">${n.title || (n.text || '').substring(0, 80)}</a>
+                </div>
+                <div class="item-reason">${n.score_reason || ''}</div>
+            </div>
+        `;
+    }).join('');
 }
 
 // 履歴描画
@@ -198,48 +266,17 @@ function renderTriggers(triggers) {
     `).join('');
 }
 
-// 評価保留理由描画
-function renderZeroReasons(reasons) {
-    const container = document.getElementById('zero-reasons-list');
-
-    if (!reasons || Object.keys(reasons).length === 0) {
-        container.innerHTML = '<p class="no-data">評価保留ニュースはありません。</p>';
-        return;
-    }
-
-    // ソート（件数順）
-    const sorted = Object.entries(reasons).sort((a, b) => b[1].count - a[1].count);
-
-    container.innerHTML = sorted.map(([reason, data]) => `
-        <div class="zero-reason-item">
-            <div class="reason-header">
-                <span class="reason">${reason}</span>
-                <span class="count">${data.count}件</span>
-            </div>
-            <div class="reason-articles">
-                ${data.articles.map(article => {
-        const url = article.url || '#';
-        const title = article.title || '(タイトルなし)';
-        const source = article.source_name || '';
-        return `<div class="reason-article">
-                        <a href="${url}" target="_blank" rel="noopener noreferrer">${title}</a>
-                        <span class="article-source">${source}</span>
-                    </div>`;
-    }).join('')}
-            </div>
-        </div>
-    `).join('');
-}
-
 // 政治発言描画
 function renderPoliticalEvents(events) {
     const container = document.getElementById('political-list');
+    const section = document.getElementById('political-section');
 
     if (!events || events.length === 0) {
-        container.innerHTML = '<p class="no-data">本日は該当する発言はありません。</p>';
+        section.classList.add('hidden');
         return;
     }
 
+    section.classList.remove('hidden');
     container.innerHTML = events.map(e => `
         <div class="political-item">
             <div class="speaker">${e.speaker}</div>
@@ -250,7 +287,7 @@ function renderPoliticalEvents(events) {
                 ${(e.items || []).map(item => {
         const url = item.url || '#';
         const sourceName = item.source_name || '';
-        return `<p>・${item.summary} <a href="${url}" target="_blank" rel="noopener noreferrer" class="source-link">[${sourceName}]</a></p>`;
+        return `<p>・${item.summary} <a href="${url}" target="_blank" class="source-link">[${sourceName}]</a></p>`;
     }).join('')}
             </div>
         </div>
@@ -269,17 +306,15 @@ function renderNews(containerId, news, type) {
     container.innerHTML = news.map(n => {
         const score = n.impact_score || 0;
         const scoreClass = score > 0 ? 'positive' : (score < 0 ? 'negative' : 'neutral');
-        const star = Math.abs(score) >= 2 ? ' ★' : '';
+        const star = Math.abs(score) >= 3 ? ' ★' : '';
         const url = n.url || '#';
         const title = n.title || (n.text || '').substring(0, 80);
 
-        // 詳細評価情報
         const confidence = n.confidence || 0;
         const confidenceStars = '★'.repeat(confidence) + '☆'.repeat(5 - confidence);
         const timeHorizon = n.time_horizon || 'medium';
         const timeLabel = { short: '短期', medium: '中期', long: '長期' }[timeHorizon] || '中期';
 
-        // 要因リスト
         const positiveFactors = (n.positive_factors || []).slice(0, 3);
         const negativeFactors = (n.negative_factors || []).slice(0, 3);
         const uncertaintyFactors = (n.uncertainty_factors || []).slice(0, 2);
@@ -293,13 +328,13 @@ function renderNews(containerId, news, type) {
                     <span class="score ${scoreClass}">${score >= 0 ? '+' : ''}${score}${star}</span>
                 </div>
                 <div class="title">
-                    <a href="${url}" target="_blank" rel="noopener noreferrer">${title}</a>
+                    <a href="${url}" target="_blank">${title}</a>
                 </div>
                 <div class="category">${n.category_name || ''} ${n.sub_category ? '(' + n.sub_category + ')' : ''}</div>
                 <div class="evaluation-details">
                     <div class="eval-meta">
-                        <span class="confidence" title="確信度">確信度: ${confidenceStars}</span>
-                        <span class="time-horizon" title="影響の時間軸">時間軸: ${timeLabel}</span>
+                        <span class="confidence">確信度: ${confidenceStars}</span>
+                        <span class="time-horizon">時間軸: ${timeLabel}</span>
                     </div>
                     <div class="reason"><strong>判定理由:</strong> ${n.score_reason || '-'}</div>
                     ${hasFactors ? `
@@ -322,11 +357,9 @@ function setupTabs() {
 
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            // アクティブ状態切り替え
             tabs.forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
 
-            // コンテンツ切り替え
             const target = tab.dataset.tab;
             document.querySelectorAll('.news-tab-content').forEach(c => c.classList.add('hidden'));
             document.getElementById(target + '-news').classList.remove('hidden');

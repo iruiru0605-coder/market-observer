@@ -10,185 +10,166 @@
 
 <body>
     <div class="container">
-        <!-- ヘッダー -->
-        <header class="header">
-            <h1>📊 Market Observer</h1>
-            <p class="subtitle">日次市場観測ダッシュボード</p>
-            <p class="timestamp" id="timestamp">読み込み中...</p>
-        </header>
-
-        <!-- 注意事項 -->
-        <div class="disclaimer">
-            <strong>⚠️ 重要</strong>: このツールは投資判断を行いません。情報整理・判断材料の補助を目的としています。
-        </div>
-
         <!-- ローディング -->
         <div id="loading" class="loading">
             <div class="spinner"></div>
-            <p>データを取得中...</p>
+            <p>マーケットデータを分析中...</p>
         </div>
 
         <!-- メインコンテンツ -->
         <main id="main-content" class="hidden">
 
-            <!-- サマリー -->
-            <section class="section summary-section">
-                <h2>サマリー</h2>
-                <div class="summary-grid">
-                    <div class="summary-card score-card" id="total-score-card">
-                        <span class="label">総合スコア</span>
-                        <span class="value" id="total-score">-</span>
+            <!-- ヒーローセクション：今日の市場を一目で -->
+            <section class="hero-section" id="hero-section">
+                <div class="hero-date">
+                    <span id="timestamp">読み込み中...</span>
+                    <button class="refresh-btn" id="refresh-btn" onclick="refreshData()">🔄 更新</button>
+                </div>
+                <div class="hero-score-container">
+                    <div class="hero-score" id="hero-score">
+                        <span class="score-value" id="total-score">-</span>
+                        <span class="score-label">総合スコア</span>
                     </div>
-                    <div class="summary-card">
-                        <span class="label">国内 / 海外</span>
-                        <span class="value small" id="domestic-foreign">- / -</span>
+                    <div class="hero-sentiment" id="hero-sentiment">
+                        <span class="sentiment-badge" id="sentiment-badge">分析中</span>
                     </div>
-                    <div class="summary-card">
-                        <span class="label">分析ニュース数</span>
-                        <span class="value" id="news-count">-</span>
+                </div>
+                <div class="hero-one-liner" id="one-liner">
+                    <p class="one-liner-text">読み込み中...</p>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <span class="stat-value" id="news-count">-</span>
+                        <span class="stat-label">分析ニュース</span>
                     </div>
-                    <div class="summary-card">
-                        <span class="label">評価保留（±0）</span>
-                        <span class="value" id="zero-ratio">-%</span>
+                    <div class="stat-item">
+                        <span class="stat-value" id="domestic-foreign">- / -</span>
+                        <span class="stat-label">国内 / 海外</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="zero-ratio">-%</span>
+                        <span class="stat-label">評価保留</span>
                     </div>
                 </div>
             </section>
 
-            <!-- 今日の一言まとめ -->
-            <section class="section one-liner-section">
-                <div class="one-liner" id="one-liner">
-                    <span class="icon">📝</span>
-                    <span class="text">読み込み中...</span>
-                </div>
-            </section>
-
-            <!-- 本日の判断に影響しやすい要素 -->
-            <section class="section priority-section">
-                <h2>🔴 本日の判断に影響しやすい要素</h2>
-                <p class="section-note">これらの情報は、市場全体の方向性に関わる重要な材料です</p>
-
-                <div class="priority-grid">
-                    <div class="priority-category">
-                        <h3>金利関連</h3>
-                        <div class="priority-item" id="priority-fed">
-                            <div class="priority-item-header">
-                                <span class="indicator"></span>
-                                <span class="name">FRB関連</span>
-                                <span class="status">-</span>
-                            </div>
+            <!-- 最重要チェック項目（横並びカード） -->
+            <section class="section priority-cards-section">
+                <h2>🔴 今日必ず確認すべき項目</h2>
+                <div class="priority-cards-grid">
+                    <div class="priority-card" id="priority-fed">
+                        <div class="card-header">
+                            <span class="card-indicator"></span>
+                            <span class="card-title">FRB関連</span>
                         </div>
-                        <div class="priority-item" id="priority-treasury">
-                            <div class="priority-item-header">
-                                <span class="indicator"></span>
-                                <span class="name">米国債利回り</span>
-                                <span class="status">-</span>
-                            </div>
-                        </div>
+                        <div class="card-status">-</div>
+                        <div class="card-summary"></div>
+                        <div class="card-articles"></div>
                     </div>
-
-                    <div class="priority-category">
-                        <h3>為替関連</h3>
-                        <div class="priority-item" id="priority-usdjpy">
-                            <div class="priority-item-header">
-                                <span class="indicator"></span>
-                                <span class="name">ドル円</span>
-                                <span class="status">-</span>
-                            </div>
+                    <div class="priority-card" id="priority-treasury">
+                        <div class="card-header">
+                            <span class="card-indicator"></span>
+                            <span class="card-title">米国債利回り</span>
                         </div>
+                        <div class="card-status">-</div>
+                        <div class="card-summary"></div>
+                        <div class="card-articles"></div>
                     </div>
-
-                    <div class="priority-category">
-                        <h3>主要経済指標</h3>
-                        <div class="priority-item" id="priority-employment">
-                            <div class="priority-item-header">
-                                <span class="indicator"></span>
-                                <span class="name">雇用統計</span>
-                                <span class="status">-</span>
-                            </div>
+                    <div class="priority-card" id="priority-usdjpy">
+                        <div class="card-header">
+                            <span class="card-indicator"></span>
+                            <span class="card-title">ドル円</span>
                         </div>
-                        <div class="priority-item" id="priority-inflation">
-                            <div class="priority-item-header">
-                                <span class="indicator"></span>
-                                <span class="name">物価指標</span>
-                                <span class="status">-</span>
-                            </div>
+                        <div class="card-status">-</div>
+                        <div class="card-summary"></div>
+                        <div class="card-articles"></div>
+                    </div>
+                    <div class="priority-card" id="priority-employment">
+                        <div class="card-header">
+                            <span class="card-indicator"></span>
+                            <span class="card-title">雇用統計</span>
                         </div>
-                        <div class="priority-item" id="priority-ism">
-                            <div class="priority-item-header">
-                                <span class="indicator"></span>
-                                <span class="name">景況感（ISM等）</span>
-                                <span class="status">-</span>
-                            </div>
+                        <div class="card-status">-</div>
+                        <div class="card-summary"></div>
+                        <div class="card-articles"></div>
+                    </div>
+                    <div class="priority-card" id="priority-inflation">
+                        <div class="card-header">
+                            <span class="card-indicator"></span>
+                            <span class="card-title">物価指標</span>
                         </div>
+                        <div class="card-status">-</div>
+                        <div class="card-summary"></div>
+                        <div class="card-articles"></div>
+                    </div>
+                    <div class="priority-card" id="priority-ism">
+                        <div class="card-header">
+                            <span class="card-indicator"></span>
+                            <span class="card-title">景況感(ISM)</span>
+                        </div>
+                        <div class="card-status">-</div>
+                        <div class="card-summary"></div>
+                        <div class="card-articles"></div>
                     </div>
                 </div>
-
-                <div class="judgement-summary" id="judgement-summary">
-                    <span class="icon">📍</span>
-                    <span class="text">判断のしやすさ: 読み込み中...</span>
+                <div class="judgement-banner" id="judgement-summary">
+                    <span class="judgement-icon">📍</span>
+                    <span class="judgement-text">判断のしやすさ: 読み込み中...</span>
                 </div>
             </section>
 
-            <!-- 過去7日間との比較 -->
-            <section class="section history-section" id="history-section">
-                <h2>📈 過去7日間との比較</h2>
-                <div class="history-content" id="history-content">
-                    <p>履歴データがありません</p>
-                </div>
-            </section>
-
-            <!-- 観測メモ -->
-            <section class="section triggers-section">
-                <h2>💡 観測メモ（自動検知）</h2>
-                <p class="section-note">ニュースの分布から注目点だけを機械的に拾っています（売買判断ではありません）</p>
-                <div class="triggers-list" id="triggers-list">
-                    <p class="no-data">現在、特筆すべき観測メモはありません。</p>
-                </div>
-            </section>
-
-            <!-- 評価保留ニュースの内訳 -->
-            <section class="section zero-reasons-section">
-                <h2>📋 評価保留ニュースの内訳</h2>
-                <p class="section-note">なぜ判断できないニュースが多いのかが分かります</p>
-                <div class="zero-reasons-list" id="zero-reasons-list">
+            <!-- 注目ニュース（高スコア） -->
+            <section class="section highlight-news-section" id="highlight-section">
+                <h2>⚡ 注目ニュース（インパクト大）</h2>
+                <div class="highlight-grid" id="highlight-grid">
                     <!-- 動的に生成 -->
+                </div>
+            </section>
+
+            <!-- 2カラム: 過去比較 + トリガー -->
+            <section class="two-column-section">
+                <div class="column" id="history-column">
+                    <div class="section-inner">
+                        <h2>📈 過去7日間との比較</h2>
+                        <div class="history-content" id="history-content">
+                            <p class="no-data">履歴データがありません</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="column" id="triggers-column">
+                    <div class="section-inner">
+                        <h2>💡 観測メモ</h2>
+                        <div class="triggers-list" id="triggers-list">
+                            <p class="no-data">特筆すべき観測メモはありません。</p>
+                        </div>
+                    </div>
                 </div>
             </section>
 
             <!-- 重要人物の発言 -->
             <section class="section political-section" id="political-section">
-                <h2>🟠 重要人物の発言（参考情報）</h2>
-                <p class="section-note">スコアには影響していません</p>
+                <h2>🟠 重要人物の発言</h2>
                 <div class="political-list" id="political-list">
                     <p class="no-data">本日は該当する発言はありません。</p>
                 </div>
             </section>
 
-            <!-- ニュース一覧 -->
+            <!-- ニュース一覧（詳細） -->
             <section class="section news-section">
                 <h2>📰 ニュース一覧</h2>
-
                 <div class="news-tabs">
                     <button class="tab-btn active" data-tab="positive">+スコア</button>
                     <button class="tab-btn" data-tab="negative">-スコア</button>
                     <button class="tab-btn" data-tab="neutral">評価保留</button>
                 </div>
-
-                <div class="news-tab-content" id="positive-news">
-                    <!-- 動的に生成 -->
-                </div>
-                <div class="news-tab-content hidden" id="negative-news">
-                    <!-- 動的に生成 -->
-                </div>
-                <div class="news-tab-content hidden" id="neutral-news">
-                    <!-- 動的に生成 -->
-                </div>
+                <div class="news-tab-content" id="positive-news"></div>
+                <div class="news-tab-content hidden" id="negative-news"></div>
+                <div class="news-tab-content hidden" id="neutral-news"></div>
             </section>
 
             <!-- フッター -->
             <footer class="footer">
-                <p>このレポートは情報をまとめたものであり、投資のアドバイスではありません。</p>
-                <p>「判断できない」ニュースが多いことは、失敗ではなく正常な状態です。</p>
+                <p>⚠️ このレポートは情報整理目的であり、投資アドバイスではありません。</p>
                 <p>最終的な判断は、ご自身の責任でお願いいたします。</p>
             </footer>
         </main>

@@ -183,16 +183,16 @@ def generate_dashboard_data():
         "one_liner": one_liner,
         "has_priority": has_priority,
         "priority_macro": {
-            "fed": _format_priority_news(priority_macro.fed_news if priority_macro else []),
-            "treasury": _format_priority_news(priority_macro.treasury_news if priority_macro else []),
-            "usdjpy": _format_priority_news(priority_macro.usdjpy_news if priority_macro else []),
-            "employment": _format_priority_news(priority_macro.employment_news if priority_macro else []),
-            "inflation": _format_priority_news(priority_macro.inflation_news if priority_macro else []),
-            "ism": _format_priority_news(priority_macro.ism_news if priority_macro else []),
+            "fed": _format_priority_news(priority_macro.fed_news if priority_macro else [], "fed"),
+            "treasury": _format_priority_news(priority_macro.treasury_news if priority_macro else [], "treasury"),
+            "usdjpy": _format_priority_news(priority_macro.usdjpy_news if priority_macro else [], "usdjpy"),
+            "employment": _format_priority_news(priority_macro.employment_news if priority_macro else [], "employment"),
+            "inflation": _format_priority_news(priority_macro.inflation_news if priority_macro else [], "inflation"),
+            "ism": _format_priority_news(priority_macro.ism_news if priority_macro else [], "ism"),
         },
         "history": history_comparison if history_comparison.get("has_history") else None,
         "triggers": [{"id": t.id, "name": t.name, "message": t.message} for t in triggers],
-        "zero_reasons": zero_reasons,
+        # zero_reasons削除（ニュース一覧の評価保留と重複するため）
         "alerts": alerts,
         "political_events": grouped_political,
         "macro": {
@@ -230,24 +230,70 @@ def _generate_one_liner(total: float, zero_ratio: float, priority_macro) -> str:
             return "特に大きな動きがない日です。"
 
 
-def _format_priority_news(news_list):
-    """priority_macro用のニュース整形"""
+def _format_priority_news(news_list, category_name: str = ""):
+    """priority_macro用のニュース整形（LLM評価情報付き）"""
     if not news_list:
-        return {"count": 0, "has": False, "articles": []}
+        return {"count": 0, "has": False, "articles": [], "summary": ""}
     
     articles = []
+    total_score = 0
+    score_count = 0
+    
     for n in news_list[:5]:  # 最大5件
+        score = n.get("impact_score", 0)
+        total_score += score
+        score_count += 1
+        
         articles.append({
             "title": n.get("title", n.get("text", "")[:60]),
             "url": n.get("url"),
             "source_name": n.get("source_name", ""),
+            "score": score,
+            "reason": n.get("score_reason", ""),
+            "time_horizon": n.get("time_horizon", "medium"),
+            "confidence": n.get("confidence", 0),
         })
+    
+    # カテゴリサマリーを生成
+    avg_score = total_score / score_count if score_count > 0 else 0
+    summary = _generate_category_summary(category_name, avg_score, len(news_list))
     
     return {
         "count": len(news_list),
         "has": len(news_list) > 0,
         "articles": articles,
+        "avg_score": round(avg_score, 1),
+        "summary": summary,
     }
+
+
+def _generate_category_summary(category_name: str, avg_score: float, count: int) -> str:
+    """カテゴリ別のサマリーを生成"""
+    if count == 0:
+        return ""
+    
+    # カテゴリ名の日本語マッピング
+    category_labels = {
+        "fed": "FRB関連",
+        "treasury": "米国債関連",
+        "usdjpy": "ドル円関連",
+        "employment": "雇用関連",
+        "inflation": "物価関連",
+        "ism": "ISM関連",
+    }
+    label = category_labels.get(category_name, category_name)
+    
+    # スコアに基づくサマリー
+    if avg_score >= 3:
+        return f"{label}: 強い買い材料が目立つ（平均スコア {avg_score:+.1f}）"
+    elif avg_score >= 1:
+        return f"{label}: やや買い寄りの内容（平均スコア {avg_score:+.1f}）"
+    elif avg_score >= -1:
+        return f"{label}: 中立的な内容が中心（平均スコア {avg_score:+.1f}）"
+    elif avg_score >= -3:
+        return f"{label}: やや売り寄りの内容（平均スコア {avg_score:+.1f}）"
+    else:
+        return f"{label}: 強い売り材料が目立つ（平均スコア {avg_score:+.1f}）"
 
 def _group_political_events(events):
     """政治発言を発言者ごとにグループ化"""
