@@ -20,52 +20,47 @@
         <!-- メインコンテンツ -->
         <main id="main-content" class="hidden">
 
-            <!-- ヒーローセクション：今日の市場を一目で + サブ情報 -->
+            <!-- ヒーローセクション：省スペース版 -->
             <section class="hero-section" id="hero-section">
                 <div class="hero-main">
-                    <div class="hero-date">
-                        <span id="timestamp">読み込み中...</span>
-                        <button class="refresh-btn" id="refresh-btn" onclick="refreshData()">🔄 更新</button>
-                    </div>
-                    <div class="hero-score-container">
-                        <div class="hero-score" id="hero-score">
-                            <span class="score-value" id="total-score">-</span>
-                            <span class="score-label">総合スコア</span>
+                    <!-- 左：日時とスコア -->
+                    <div class="hero-left">
+                        <div class="hero-date">
+                            <span id="timestamp">読み込み中...</span>
+                            <button class="refresh-btn" id="refresh-btn" onclick="refreshData()">🔄 更新</button>
                         </div>
-                        <div class="hero-sentiment" id="hero-sentiment">
-                            <span class="sentiment-badge" id="sentiment-badge">分析中</span>
+                        <div class="hero-score-row">
+                            <span class="hero-score-value" id="total-score">-</span>
+                            <span class="hero-sentiment-badge" id="sentiment-badge">分析中</span>
                         </div>
                     </div>
-                    <div class="hero-one-liner" id="one-liner">
-                        <p class="one-liner-text">読み込み中...</p>
-                    </div>
-                    <div class="hero-stats">
-                        <div class="stat-item">
-                            <span class="stat-value" id="news-count">-</span>
-                            <span class="stat-label">分析ニュース</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-value" id="domestic-foreign">- / -</span>
-                            <span class="stat-label">国内 / 海外</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-value" id="zero-ratio">-%</span>
-                            <span class="stat-label">評価保留</span>
+
+                    <!-- 中央：一言まとめ -->
+                    <div class="hero-center">
+                        <div class="hero-one-liner" id="one-liner">
+                            <p class="one-liner-text">読み込み中...</p>
                         </div>
                     </div>
-                </div>
-                <!-- サブ情報パネル（過去比較・観測メモ） -->
-                <div class="hero-sub-panels">
-                    <div class="sub-panel" id="history-panel">
-                        <div class="sub-panel-header">📈 7日比較</div>
-                        <div class="sub-panel-content" id="history-mini">
-                            <span class="no-data-mini">データなし</span>
-                        </div>
-                    </div>
-                    <div class="sub-panel" id="triggers-panel">
-                        <div class="sub-panel-header">💡 観測メモ</div>
-                        <div class="sub-panel-content" id="triggers-mini">
-                            <span class="no-data-mini">なし</span>
+
+                    <!-- 右：統計・サブ情報 -->
+                    <div class="hero-right">
+                        <div class="compact-stat-group">
+                            <div class="compact-stat">
+                                <span class="compact-stat-label">分析件数</span>
+                                <span class="compact-stat-value" id="news-count">-</span>
+                            </div>
+                            <div class="compact-stat">
+                                <span class="compact-stat-label">7日スコア</span>
+                                <span class="compact-stat-value" id="history-mini-text">-</span>
+                            </div>
+                            <div class="compact-stat">
+                                <span class="compact-stat-label">国内/海外</span>
+                                <span class="compact-stat-value" id="domestic-foreign">-</span>
+                            </div>
+                            <div class="compact-stat">
+                                <span class="compact-stat-label">観測メモ</span>
+                                <span class="compact-stat-value" id="triggers-mini-text">-</span>
+                            </div>
                         </div>
                     </div>
                 </div>

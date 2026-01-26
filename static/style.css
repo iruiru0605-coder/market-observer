@@ -74,145 +74,183 @@ body {
 /* ======================== */
 /* ヒーローセクション */
 /* ======================== */
+/* ======================== */
+/* ヒーローセクション（コンパクト版） */
+/* ======================== */
 .hero-section {
     background: linear-gradient(135deg, var(--bg-secondary), var(--bg-card));
     border-radius: var(--radius-lg);
-    padding: 40px;
-    margin-bottom: 30px;
-    text-align: center;
+    padding: 24px;
+    margin-bottom: 25px;
     box-shadow: var(--shadow-lg);
     border: 1px solid var(--border-color);
 }
 
+.hero-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 30px;
+}
+
+/* 左側：日時とスコア */
+.hero-left {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    min-width: 200px;
+}
+
 .hero-date {
-    font-size: 1rem;
+    font-size: 0.9rem;
     color: var(--text-secondary);
-    margin-bottom: 20px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 15px;
+    gap: 10px;
+    margin: 0;
 }
 
 .refresh-btn {
     background: transparent;
     border: 1px solid var(--accent-blue);
     color: var(--accent-blue);
-    padding: 6px 16px;
-    border-radius: 20px;
+    padding: 3px 10px;
+    border-radius: 15px;
     cursor: pointer;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     transition: all 0.2s;
 }
 
 .refresh-btn:hover:not(:disabled) {
-    background: rgba(29, 161, 242, 0.1);
+    background: rgba(77, 208, 225, 0.1);
 }
 
-.refresh-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    border-color: var(--text-secondary);
-    color: var(--text-secondary);
-}
-
-.hero-score-container {
+.hero-score-row {
     display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 30px;
-    margin-bottom: 25px;
+    align-items: baseline;
+    gap: 15px;
 }
 
-.hero-score {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.hero-score .score-value {
-    font-size: 4rem;
+.hero-score-value {
+    font-size: 3rem;
     font-weight: 700;
     line-height: 1;
-    transition: color 0.3s;
 }
 
-.hero-score .score-value.positive {
+.hero-score-value.positive {
     color: var(--accent-green);
 }
 
-.hero-score .score-value.negative {
+.hero-score-value.negative {
     color: var(--accent-red);
 }
 
-.hero-score .score-value.neutral {
+.hero-score-value.neutral {
     color: var(--text-secondary);
 }
 
-.hero-score .score-label {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    margin-top: 8px;
-}
-
-.hero-sentiment .sentiment-badge {
-    display: inline-block;
-    padding: 8px 20px;
-    border-radius: 20px;
+.hero-sentiment-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
     font-weight: 600;
-    font-size: 1rem;
+    font-size: 0.9rem;
 }
 
-.sentiment-badge.positive {
+.hero-sentiment-badge.positive {
     background: rgba(0, 208, 132, 0.2);
     color: var(--accent-green);
     border: 1px solid var(--accent-green);
 }
 
-.sentiment-badge.negative {
+.hero-sentiment-badge.negative {
     background: rgba(255, 71, 87, 0.2);
     color: var(--accent-red);
     border: 1px solid var(--accent-red);
 }
 
-.sentiment-badge.neutral {
+.hero-sentiment-badge.neutral {
     background: rgba(136, 153, 166, 0.2);
     color: var(--text-secondary);
     border: 1px solid var(--text-secondary);
 }
 
+/* 中央：テキスト */
+.hero-center {
+    flex: 2;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-left: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-color);
+    padding: 0 30px;
+}
+
 .hero-one-liner {
-    margin-bottom: 30px;
+    margin: 0;
 }
 
 .hero-one-liner .one-liner-text {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     color: var(--text-primary);
-    max-width: 700px;
-    margin: 0 auto;
+    line-height: 1.5;
 }
 
-.hero-stats {
+/* 右側：統計データ */
+.hero-right {
+    flex: 1;
     display: flex;
-    justify-content: center;
-    gap: 50px;
+    flex-wrap: wrap;
+    gap: 15px;
+    min-width: 300px;
 }
 
-.stat-item {
+.compact-stat-group {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px 20px;
+    width: 100%;
+}
+
+.compact-stat {
     display: flex;
     flex-direction: column;
-    align-items: center;
 }
 
-.stat-item .stat-value {
-    font-size: 1.5rem;
+.compact-stat-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.compact-stat-value {
+    font-size: 0.95rem;
     font-weight: 600;
-    color: var(--accent-blue);
+    color: var(--text-secondary);
 }
 
-.stat-item .stat-label {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
+/* ======================== */
+/* レスポンシブ対応（スマホなどは縦並び） */
+@media (max-width: 900px) {
+    .hero-main {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .hero-center {
+        border: none;
+        border-top: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--border-color);
+        padding: 20px 0;
+    }
+}
+
+/* マーケットカードグリッド (7つ並ぶように調整) */
+.market-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    margin-bottom: 25px;
 }
 
 /* サブパネル（7日比較・観測メモ） */
@@ -1130,17 +1168,17 @@ body {
     color: var(--text-secondary);
 }
 
-.political-article .article-title {
-    color: var(--text-primary);
+.political-article a {
+    color: var(--accent-blue);
     text-decoration: none;
     font-weight: 500;
     font-size: 0.95rem;
-    flex: 1;
+    display: block;
+    margin-bottom: 4px;
 }
 
-.political-article .article-title:hover {
-    color: #4db5f9;
-    /* 明るめの青に調整 */
+.political-article a:hover {
+    color: #80deea;
     text-decoration: underline;
 }
 

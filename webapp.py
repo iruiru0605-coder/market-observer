@@ -358,7 +358,8 @@ def _group_political_events(events):
         result.append({
             "speaker": speaker,
             "themes": [{"name": k, "count": v} for k, v in data["themes"].items()],
-            "items": unique_items[:5],  # 最大5件
+            "articles": unique_items[:5],  # items -> articles
+            "count": len(unique_items),    # count追加
             "sources": list(set(data["sources"]))[:3],
         })
     

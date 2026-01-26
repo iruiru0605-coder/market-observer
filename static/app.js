@@ -53,9 +53,6 @@ function renderDashboard(data) {
     // ヒーローセクション
     renderHeroSection(data);
 
-    // サブパネル（7日比較・観測メモ）
-    renderSubPanels(data);
-
     // マーケットデータ（為替・国債利回り）
     if (data.market_data) {
         // マーケット概況テキスト
@@ -90,39 +87,44 @@ function renderDashboard(data) {
     renderNews('negative-news', data.news.negative, 'negative');
     renderNews('neutral-news', data.news.neutral, 'neutral');
     renderPoliticalNewsTab(data.political_events);
+
+    // タブのラベル更新（件数・スコア表示）
+    updateTabLabels(data);
 }
 
-// サブパネル描画（7日比較・観測メモ）
-function renderSubPanels(data) {
-    // 7日比較
-    const historyEl = document.getElementById('history-mini');
-    if (historyEl) {
-        if (data.history && data.history.has_history &&
-            typeof data.history.score_change === 'number') {
-            const h = data.history;
-            const scoreChange = h.score_change >= 0 ? `+${h.score_change.toFixed(1)}` : h.score_change.toFixed(1);
-            const zeroRatioChange = h.zero_ratio_change || 0;
-            const zeroChange = zeroRatioChange >= 0 ? `+${zeroRatioChange}` : zeroRatioChange;
-            historyEl.innerHTML = `
-                <div class="mini-stat">スコア: <span class="${h.score_change >= 0 ? 'up' : 'down'}">${scoreChange}</span></div>
-                <div class="mini-stat">評価保留: <span class="${zeroRatioChange <= 0 ? 'up' : 'down'}">${zeroChange}%</span></div>
-            `;
-        } else {
-            historyEl.innerHTML = '<span class="no-data-mini">データなし</span>';
-        }
-    }
+// タブのラベル更新
+function updateTabLabels(data) {
+    const news = data.news || {};
 
-    // 観測メモ
-    const triggersEl = document.getElementById('triggers-mini');
-    if (triggersEl) {
-        if (data.triggers && data.triggers.length > 0) {
-            triggersEl.innerHTML = data.triggers.slice(0, 2).map(t =>
-                `<div class="mini-trigger">${t.name}</div>`
-            ).join('');
-        } else {
-            triggersEl.innerHTML = '<span class="no-data-mini">なし</span>';
-        }
-    }
+    // Positive
+    const posCount = (news.positive || []).length;
+    const posScore = (news.positive || []).reduce((sum, n) => sum + (n.impact_score || 0), 0);
+    const posBtn = document.querySelector('.tab-btn[data-tab="positive"]');
+    if (posBtn) posBtn.textContent = `📈 +スコア (${posCount}件 +${posScore.toFixed(0)})`;
+
+    // Negative
+    const negCount = (news.negative || []).length;
+    const negScore = (news.negative || []).reduce((sum, n) => sum + (n.impact_score || 0), 0);
+    const negBtn = document.querySelector('.tab-btn[data-tab="negative"]');
+    if (negBtn) negBtn.textContent = `📉 -スコア (${negCount}件 ${negScore.toFixed(0)})`;
+
+    // Neutral
+    const neuCount = (news.neutral || []).length;
+    const neuBtn = document.querySelector('.tab-btn[data-tab="neutral"]');
+    if (neuBtn) neuBtn.textContent = `⏸️ 評価保留 (${neuCount}件)`;
+
+    // Highlight (再計算)
+    const highlightsCount = [
+        ...(news.positive || []).filter(n => Math.abs(n.impact_score) >= 3),
+        ...(news.negative || []).filter(n => Math.abs(n.impact_score) >= 3)
+    ].length;
+    const highBtn = document.querySelector('.tab-btn[data-tab="highlight"]');
+    if (highBtn) highBtn.textContent = `⚡ 注目 (${highlightsCount}件)`;
+
+    // Political
+    const polCount = (data.political_events || []).length;
+    const polBtn = document.querySelector('.tab-btn[data-tab="political"]');
+    if (polBtn) polBtn.textContent = `🟠 要人発言 (${polCount}件)`;
 }
 
 // ヒーローセクション描画
@@ -136,50 +138,74 @@ function renderHeroSection(data) {
     scoreEl.textContent = (totalScore >= 0 ? '+' : '') + totalScore.toFixed(1);
 
     if (totalScore >= 2) {
-        scoreEl.className = 'score-value positive';
+        scoreEl.className = 'hero-score-value positive';
     } else if (totalScore <= -2) {
-        scoreEl.className = 'score-value negative';
+        scoreEl.className = 'hero-score-value negative';
     } else {
-        scoreEl.className = 'score-value neutral';
+        scoreEl.className = 'hero-score-value neutral';
     }
 
     // センチメントバッジ
     const badge = document.getElementById('sentiment-badge');
     if (totalScore >= 3) {
         badge.textContent = '強気';
-        badge.className = 'sentiment-badge positive';
+        badge.className = 'hero-sentiment-badge positive';
     } else if (totalScore >= 1) {
         badge.textContent = 'やや強気';
-        badge.className = 'sentiment-badge positive';
+        badge.className = 'hero-sentiment-badge positive';
     } else if (totalScore <= -3) {
         badge.textContent = '弱気';
-        badge.className = 'sentiment-badge negative';
+        badge.className = 'hero-sentiment-badge negative';
     } else if (totalScore <= -1) {
         badge.textContent = 'やや弱気';
-        badge.className = 'sentiment-badge negative';
+        badge.className = 'hero-sentiment-badge negative';
     } else {
         badge.textContent = '中立';
-        badge.className = 'sentiment-badge neutral';
+        badge.className = 'hero-sentiment-badge neutral';
     }
 
     // 今日の一言
-    document.querySelector('#one-liner .one-liner-text').textContent = data.one_liner;
+    document.querySelector('#one-liner .one-liner-text').textContent = data.one_liner || '分析データが不足しています。';
 
-    // 統計
-    document.getElementById('news-count').textContent = data.summary.news_count + '件';
+    // 統計データ（右カラム）
+    document.getElementById('news-count').textContent = (data.summary.news_count || 0) + '件';
     document.getElementById('domestic-foreign').textContent =
-        `${data.summary.domestic_score >= 0 ? '+' : ''}${data.summary.domestic_score.toFixed(1)} / ${data.summary.foreign_score >= 0 ? '+' : ''}${data.summary.foreign_score.toFixed(1)}`;
-    document.getElementById('zero-ratio').textContent = data.summary.zero_ratio + '%';
+        `${data.summary.domestic_score >= 0 ? '+' : ''}${(data.summary.domestic_score || 0).toFixed(0)} / ${data.summary.foreign_score >= 0 ? '+' : ''}${(data.summary.foreign_score || 0).toFixed(0)}`;
+
+    // 7日比較テキスト
+    const histEl = document.getElementById('history-mini-text');
+    if (histEl) {
+        if (data.history && data.history.has_history && typeof data.history.score_change === 'number') {
+            const diff = data.history.score_change;
+            histEl.textContent = (diff > 0 ? '+' : '') + diff.toFixed(1);
+            histEl.style.color = diff > 0.5 ? 'var(--accent-green)' : (diff < -0.5 ? 'var(--accent-red)' : 'var(--text-secondary)');
+        } else {
+            histEl.textContent = '-';
+        }
+    }
+
+    // 観測メモテキスト
+    const trigEl = document.getElementById('triggers-mini-text');
+    if (trigEl) {
+        if (data.triggers && data.triggers.length > 0) {
+            const count = data.triggers.length;
+            trigEl.textContent = `${count}件 (${data.triggers[0].name.substring(0, 5)}..)`;
+        } else {
+            trigEl.textContent = 'なし';
+        }
+    }
 }
 
 // 優先度カード描画
 function renderPriorityCard(id, item) {
     const el = document.getElementById(id);
+    if (!el) return;
+
     const statusEl = el.querySelector('.card-status');
     const summaryEl = el.querySelector('.card-summary');
     const articlesEl = el.querySelector('.card-articles');
 
-    if (item.has) {
+    if (item && item.has) {
         el.classList.add('has');
         const avgScore = item.avg_score || 0;
         statusEl.innerHTML = `${item.count}件 <span style="color: ${avgScore > 0 ? 'var(--accent-green)' : (avgScore < 0 ? 'var(--accent-red)' : 'var(--text-secondary)')}">(${avgScore >= 0 ? '+' : ''}${avgScore})</span>`;
@@ -188,7 +214,7 @@ function renderPriorityCard(id, item) {
             summaryEl.textContent = item.summary;
         }
 
-        if (item.articles && item.articles.length > 0) {
+        if (item.articles && Array.isArray(item.articles) && item.articles.length > 0) {
             articlesEl.innerHTML = item.articles.map(article => {
                 const score = article.score || 0;
                 const scoreClass = score > 0 ? 'positive' : (score < 0 ? 'negative' : '');
@@ -211,10 +237,18 @@ function renderHighlightNewsTab(news) {
     const container = document.getElementById('highlight-news');
     if (!container) return;
 
+    if (!news) {
+        container.innerHTML = '<p class="no-data">データ待機中...</p>';
+        return;
+    }
+
+    const positive = Array.isArray(news.positive) ? news.positive : [];
+    const negative = Array.isArray(news.negative) ? news.negative : [];
+
     // +3以上/-3以下のニュースを抽出
     const highlights = [
-        ...news.positive.filter(n => Math.abs(n.impact_score) >= 3),
-        ...news.negative.filter(n => Math.abs(n.impact_score) >= 3)
+        ...positive.filter(n => Math.abs(n.impact_score) >= 3),
+        ...negative.filter(n => Math.abs(n.impact_score) >= 3)
     ].sort((a, b) => Math.abs(b.impact_score) - Math.abs(a.impact_score)).slice(0, 10);
 
     if (highlights.length === 0) {
@@ -245,7 +279,7 @@ function renderPoliticalNewsTab(politicalEvents) {
     const container = document.getElementById('political-news');
     if (!container) return;
 
-    if (!politicalEvents || politicalEvents.length === 0) {
+    if (!politicalEvents || !Array.isArray(politicalEvents) || politicalEvents.length === 0) {
         container.innerHTML = '<p class="no-data">本日は重要人物の発言はありません。</p>';
         return;
     }
@@ -258,12 +292,12 @@ function renderPoliticalNewsTab(politicalEvents) {
                 <span class="speaker-count">(${event.count}件)</span>
             </div>
             <div class="political-articles">
-                ${event.articles.map(a => `
+                ${(event.articles && Array.isArray(event.articles)) ? event.articles.map(a => `
                     <div class="political-article">
                         <a href="${a.url || '#'}" target="_blank">${a.title || '(タイトルなし)'}</a>
                         ${a.snippet ? `<p class="article-snippet">${a.snippet}</p>` : ''}
                     </div>
-                `).join('')}
+                `).join('') : '<p class="no-data-mini">記事なし</p>'}
             </div>
         </div>
     `).join('')}</div>`;
@@ -460,11 +494,12 @@ function renderMarketQuotes(marketData) {
 
     // カテゴリ定義
     const categories = [
-        { key: 'fx', icon: '💱', decimals: 2, unit: '' },
-        { key: 'bonds', icon: '📊', decimals: 3, unit: '%' },
-        { key: 'risk', icon: '⚠️', decimals: 1, unit: '' },
+        { key: 'fx', icon: '💱', decimals: 3, unit: '' },
+        { key: 'bonds', icon: '🏦', decimals: 3, unit: '%' },
+        { key: 'risk', icon: '😨', decimals: 2, unit: '' },
         { key: 'commodity', icon: '🛢️', decimals: 2, unit: '$' },
         { key: 'index', icon: '📈', decimals: 2, unit: '' },
+        { key: 'crypto', icon: '₿', decimals: 0, unit: '$' },
     ];
 
     // 各カテゴリのデータを統合
@@ -472,11 +507,15 @@ function renderMarketQuotes(marketData) {
         const data = marketData[cat.key];
         if (data && data.length > 0) {
             data.forEach((q, i) => {
-                const priceStr = cat.unit === '$'
-                    ? `$${q.price.toFixed(cat.decimals)}`
-                    : cat.unit === '%'
-                        ? `${q.price.toFixed(cat.decimals)}%`
-                        : q.price.toLocaleString('ja-JP', { minimumFractionDigits: cat.decimals, maximumFractionDigits: cat.decimals });
+                let priceStr;
+                if (cat.unit === '$') {
+                    // BTCなどは大きいので桁区切り
+                    priceStr = `$${q.price.toLocaleString('ja-JP', { minimumFractionDigits: cat.decimals, maximumFractionDigits: cat.decimals })}`;
+                } else if (cat.unit === '%') {
+                    priceStr = `${q.price.toFixed(cat.decimals)}%`;
+                } else {
+                    priceStr = q.price.toLocaleString('ja-JP', { minimumFractionDigits: cat.decimals, maximumFractionDigits: cat.decimals });
+                }
 
                 quotes.push({
                     id: `chart-${cat.key}-${i}`,
@@ -517,7 +556,7 @@ function renderMarketQuotes(marketData) {
                     <span class="market-name">${q.name}</span>
                 </div>
                 <div class="market-card-chart">
-                    <canvas id="${q.id}" width="200" height="80"></canvas>
+                    <canvas id="${q.id}" width="200" height="60"></canvas>
                 </div>
                 <div class="market-card-body">
                     <div class="market-price-row">
@@ -649,6 +688,8 @@ function renderEconomicIndicators(indicators) {
 
 // マーケット概況テキスト描画
 function renderMarketSummaryText(summary) {
+    if (!summary) return;
+
     // 一言まとめ
     const oneLinerEl = document.getElementById('market-one-liner');
     if (oneLinerEl && summary.one_liner) {
@@ -657,11 +698,12 @@ function renderMarketSummaryText(summary) {
 
     // 各セクションのテキスト
     const summaryEl = document.getElementById('market-summary-text');
-    if (!summaryEl || !summary.sections) return;
+    if (!summaryEl || !summary.sections || !Array.isArray(summary.sections)) return;
 
     summaryEl.innerHTML = summary.sections.map(section => {
         // テキスト内の改行をbrに変換
-        const contentHtml = section.content
+        const content = section.content || '';
+        const contentHtml = content
             .split('\n')
             .map(line => {
                 // 矢印で始まる行（解説）は強調

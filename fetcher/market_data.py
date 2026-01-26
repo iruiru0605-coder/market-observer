@@ -58,6 +58,8 @@ class MarketDataFetcher:
                   "description": "米国株式市場の代表指数"},
         "^N225": {"name": "日経平均", "category": "index",
                   "description": "日本株式市場の代表指数"},
+        "BTC-USD": {"name": "ビットコイン", "category": "crypto",
+                    "description": "仮想通貨。リスク選好の指標"},
     }
     
     def fetch_quote(self, symbol: str) -> Optional[MarketQuote]:
@@ -99,6 +101,10 @@ class MarketDataFetcher:
         result = {
             "fx": [],
             "bonds": [],
+            "risk": [],
+            "commodity": [],
+            "index": [],
+            "crypto": [],
             "timestamp": datetime.now().isoformat(),
         }
         
@@ -106,10 +112,8 @@ class MarketDataFetcher:
             quote = self.fetch_quote(symbol)
             if quote:
                 category = info.get("category", "other")
-                if category == "fx":
-                    result["fx"].append(quote.to_dict())
-                elif category == "bond":
-                    result["bonds"].append(quote.to_dict())
+                if category in result:
+                    result[category].append(quote.to_dict())
         
         return result
     
@@ -152,6 +156,7 @@ class MarketDataFetcher:
             "risk": [],
             "commodity": [],
             "index": [],
+            "crypto": [],
             "timestamp": datetime.now().isoformat(),
         }
         
