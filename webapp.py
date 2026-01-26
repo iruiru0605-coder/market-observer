@@ -21,8 +21,11 @@ from analyzer import (
     detect_triggers,
     detect_priority_macro
 )
+from analyzer.market_summary import generate_market_summary
 from alert import AlertDetector
 from fetcher import fetch_news
+from fetcher.market_data import get_market_data
+from fetcher.economic_calendar import get_economic_indicators
 from data import get_history_manager
 
 # LLM分類器（利用可能な場合）
@@ -205,7 +208,19 @@ def generate_dashboard_data():
             "negative": negative_news[:10],
             "neutral": neutral_news[:10],
         },
+        # マーケットデータ（為替・国債利回り・指標等）
+        "market_data": _get_market_data_with_summary(),
+        # 経済指標
+        "economic_indicators": get_economic_indicators(),
     }
+
+
+def _get_market_data_with_summary() -> dict:
+    """マーケットデータと概況テキストを取得"""
+    market_data = get_market_data()
+    market_summary = generate_market_summary(market_data)
+    market_data["summary"] = market_summary
+    return market_data
 
 
 def _generate_one_liner(total: float, zero_ratio: float, priority_macro) -> str:

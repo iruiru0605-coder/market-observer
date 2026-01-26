@@ -7,7 +7,7 @@
     --text-primary: #ffffff;
     --text-secondary: #8899a6;
     --text-muted: #5a6a7a;
-    --accent-blue: #1da1f2;
+    --accent-blue: #4dd0e1;
     --accent-green: #00d084;
     --accent-red: #ff4757;
     --accent-yellow: #ffc107;
@@ -215,8 +215,63 @@ body {
     color: var(--text-secondary);
 }
 
+/* サブパネル（7日比較・観測メモ） */
+.hero-sub-panels {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+    justify-content: center;
+}
+
+.sub-panel {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-sm);
+    padding: 12px 18px;
+    border: 1px solid var(--border-color);
+    min-width: 160px;
+}
+
+.sub-panel-header {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.sub-panel-content {
+    font-size: 0.9rem;
+}
+
+.mini-stat {
+    margin-bottom: 4px;
+}
+
+.mini-stat .up {
+    color: var(--accent-green);
+    font-weight: 600;
+}
+
+.mini-stat .down {
+    color: var(--accent-red);
+    font-weight: 600;
+}
+
+.mini-trigger {
+    background: rgba(255, 193, 7, 0.15);
+    color: var(--accent-yellow);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    margin-bottom: 4px;
+}
+
+.no-data-mini {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
 /* ======================== */
-/* 優先度カード（横並び） */
+/* セクション共通 */
 /* ======================== */
 .section {
     background: var(--bg-secondary);
@@ -233,6 +288,385 @@ body {
     padding-bottom: 12px;
     border-bottom: 1px solid var(--border-color);
 }
+
+/* ======================== */
+/* マーケット概況セクション */
+/* ======================== */
+.market-overview-section {
+    background: linear-gradient(135deg, var(--bg-secondary), rgba(29, 161, 242, 0.03));
+}
+
+/* 一言まとめ */
+.market-one-liner {
+    background: linear-gradient(135deg, rgba(29, 161, 242, 0.15), rgba(0, 208, 132, 0.1));
+    border-radius: var(--radius-md);
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    border-left: 4px solid var(--accent-blue);
+}
+
+.one-liner-content {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* マーケット概況テキスト */
+.market-summary-text {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.market-summary-section {
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    padding: 15px;
+    border: 1px solid var(--border-color);
+}
+
+.summary-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.summary-icon {
+    font-size: 1.1rem;
+}
+
+.summary-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--accent-blue);
+}
+
+.summary-section-content {
+    line-height: 1.7;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.summary-line {
+    display: block;
+    margin-bottom: 4px;
+}
+
+.summary-insight {
+    display: block;
+    color: var(--accent-green);
+    font-weight: 500;
+    margin-top: 8px;
+    padding-left: 0.5em;
+    font-size: 0.85rem;
+}
+
+.summary-sub {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    padding-left: 1em;
+}
+
+/* マーケットカードグリッド */
+.market-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.market-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    padding: 15px;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s;
+}
+
+.market-card:hover {
+    border-color: var(--accent-blue);
+    transform: translateY(-2px);
+}
+
+.market-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.market-icon {
+    font-size: 1.2rem;
+}
+
+.market-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.market-card-chart {
+    height: 80px;
+    margin-bottom: 10px;
+}
+
+.market-card-chart canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.market-card-body {
+    text-align: center;
+}
+
+.market-price-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.market-price {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.trend-arrow {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.trend-arrow.up {
+    color: var(--accent-green);
+}
+
+.trend-arrow.down {
+    color: var(--accent-red);
+}
+
+.trend-arrow.flat {
+    color: var(--text-secondary);
+}
+
+.market-change {
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.market-change.up {
+    color: var(--accent-green);
+}
+
+.market-change.down {
+    color: var(--accent-red);
+}
+
+.market-change.flat {
+    color: var(--text-secondary);
+}
+
+.chart-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.chart-quote {
+    text-align: right;
+}
+
+.chart-quote .quote-price {
+    display: block;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+
+.chart-quote .quote-change {
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.chart-quote .quote-change.up {
+    color: var(--accent-green);
+}
+
+.chart-quote .quote-change.down {
+    color: var(--accent-red);
+}
+
+.chart-quote .quote-change.flat {
+    color: var(--text-secondary);
+}
+
+.tradingview-widget-container {
+    height: 180px;
+}
+
+/* 経済指標セクション */
+.economic-section {
+    margin-top: 10px;
+}
+
+.economic-section h3 {
+    font-size: 1rem;
+    margin-bottom: 15px;
+    color: var(--text-secondary);
+}
+
+.economic-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+@media (max-width: 900px) {
+    .economic-cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .economic-cards-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.economic-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    padding: 15px;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s;
+}
+
+.economic-card:hover {
+    border-color: var(--accent-blue);
+}
+
+.economic-card .ec-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.economic-card .ec-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    flex: 1;
+    line-height: 1.3;
+}
+
+.economic-card .ec-impact {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.economic-card .ec-impact.high {
+    background: rgba(255, 71, 87, 0.2);
+    color: var(--accent-red);
+}
+
+.economic-card .ec-impact.medium {
+    background: rgba(255, 193, 7, 0.2);
+    color: var(--accent-yellow);
+}
+
+.economic-card .ec-impact.low {
+    background: rgba(136, 153, 166, 0.2);
+    color: var(--text-secondary);
+}
+
+.economic-card .ec-values {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    text-align: center;
+}
+
+.economic-card .ec-value-item {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 8px 5px;
+    border-radius: 6px;
+}
+
+.economic-card .ec-value-label {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.economic-card .ec-value-num {
+    display: block;
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.economic-card .ec-value-num.positive {
+    color: var(--accent-green);
+}
+
+.economic-card .ec-value-num.negative {
+    color: var(--accent-red);
+}
+
+.economic-card .ec-value-num.actual {
+    color: var(--accent-blue);
+}
+
+.economic-card .ec-surprise {
+    margin-top: 10px;
+    font-size: 0.8rem;
+    padding: 6px;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.economic-card .ec-surprise.positive_strong {
+    background: rgba(0, 208, 132, 0.15);
+    color: var(--accent-green);
+}
+
+.economic-card .ec-surprise.positive {
+    background: rgba(0, 208, 132, 0.1);
+    color: var(--accent-green);
+}
+
+.economic-card .ec-surprise.negative_strong {
+    background: rgba(255, 71, 87, 0.15);
+    color: var(--accent-red);
+}
+
+.economic-card .ec-surprise.negative {
+    background: rgba(255, 71, 87, 0.1);
+    color: var(--accent-red);
+}
+
+.economic-card .ec-surprise.inline {
+    background: rgba(136, 153, 166, 0.1);
+    color: var(--text-secondary);
+}
+
+.economic-card .ec-surprise.pending {
+    background: rgba(255, 193, 7, 0.1);
+    color: var(--accent-yellow);
+}
+
+/* ======================== */
+/* 優先度カード（横並び） */
+/* ======================== */
 
 .priority-cards-grid {
     display: grid;
